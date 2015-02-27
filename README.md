@@ -23,5 +23,5 @@ build
 ### Mono
 
 ```bash
-./build.sh
+source build.sh
 ```

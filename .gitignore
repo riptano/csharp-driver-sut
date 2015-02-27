@@ -1,5 +1,6 @@
-#Ignore thumbnails created by windows
+#Ignore thumbnails created by Windows / OS x
 Thumbs.db
+.DS_STORE
 #Ignore files build by Visual Studio
 *.obj
 *.exe
