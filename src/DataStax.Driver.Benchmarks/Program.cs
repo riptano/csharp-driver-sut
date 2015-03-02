@@ -2,6 +2,7 @@
 using Owin;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Net;
 using System.Net.Http;
@@ -23,7 +24,7 @@ namespace DataStax.Driver.Benchmarks
 
         static void Main(string[] args)
         {
-            string baseAddress = "http://localhost:8080/";
+            string baseAddress = "http://localhost:8081/";
             var contactPoint = "127.0.0.1";
             if (args.Length > 0)
             {
@@ -33,7 +34,8 @@ namespace DataStax.Driver.Benchmarks
             {
                 baseAddress = args[1];
             }
-
+            Cassandra.Diagnostics.CassandraTraceSwitch.Level = System.Diagnostics.TraceLevel.Info;
+            Trace.Listeners.Add(new ConsoleTraceListener());
             var cluster = Cluster.Builder().AddContactPoint(contactPoint).Build();
             Session = cluster.Connect();
             InsertPs = Session.Prepare(InsertQuery);
