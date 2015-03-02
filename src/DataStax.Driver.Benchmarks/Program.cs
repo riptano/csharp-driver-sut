@@ -1,13 +1,8 @@
 ﻿using Microsoft.Owin.Hosting;
 using Owin;
 using System;
-using System.Collections.Generic;
 using System.Diagnostics;
-using System.Linq;
-using System.Net;
 using System.Net.Http;
-using System.Text;
-using System.Threading.Tasks;
 using System.Web.Http;
 using Cassandra;
 using System.Web.Http.Routing;
@@ -24,17 +19,24 @@ namespace DataStax.Driver.Benchmarks
 
         static void Main(string[] args)
         {
-            string baseAddress = "http://localhost:8081/";
+            var baseAddress = "http://localhost:8081/";
             var contactPoint = "127.0.0.1";
+            var driverVersion = "master";
+
             if (args.Length > 0)
             {
-                contactPoint = args[0];
+                driverVersion = args[0];
             }
             if (args.Length > 1)
             {
-                baseAddress = args[1];
+                contactPoint = args[1];
             }
-            Cassandra.Diagnostics.CassandraTraceSwitch.Level = System.Diagnostics.TraceLevel.Info;
+            if (args.Length > 2)
+            {
+                baseAddress = args[2];
+            }
+            Console.WriteLine("Starting web server with driver version " + driverVersion);
+            Cassandra.Diagnostics.CassandraTraceSwitch.Level = TraceLevel.Info;
             Trace.Listeners.Add(new ConsoleTraceListener());
             var cluster = Cluster.Builder().AddContactPoint(contactPoint).Build();
             Session = cluster.Connect();
@@ -45,7 +47,7 @@ namespace DataStax.Driver.Benchmarks
                 Console.WriteLine("Server running on " + baseAddress);
                 Console.ReadLine();
             }
-            cluster.Shutdown();
+            cluster.Shutdown(3000);
         }
 
 

@@ -4,9 +4,11 @@ using System.Linq;
 using System.Net;
 using System.Net.Http;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Web.Http;
 using Cassandra;
+#pragma warning disable 618
 
 namespace DataStax.Driver.Benchmarks
 {
@@ -14,7 +16,7 @@ namespace DataStax.Driver.Benchmarks
     {
         private static Statement GetInsertSimpleStatement(object[] values)
         {
-            return new SimpleStatement(Program.InsertQuery, values);
+            return new SimpleStatement(Program.InsertQuery).Bind(values);
         }
 
         private static Statement GetInsertBoundStatement(object[] values)
@@ -24,7 +26,7 @@ namespace DataStax.Driver.Benchmarks
 
         private static Statement GetSelectSimpleStatement(object[] values)
         {
-            return new SimpleStatement(Program.SelectQuery, values);
+            return new SimpleStatement(Program.SelectQuery).Bind(values);
         }
 
         private static Statement GetSelectBoundStatement(object[] values)
