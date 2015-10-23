@@ -8,30 +8,17 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Web.Http;
 using Cassandra;
-#pragma warning disable 618
+using DataStax.Driver.Benchmarks.Models;
 
 namespace DataStax.Driver.Benchmarks
 {
     public class MainController : ApiController
     {
-        private static Statement GetInsertSimpleStatement(object[] values)
-        {
-            return new SimpleStatement(Program.InsertQuery).Bind(values);
-        }
+        private readonly Repository _repository;
 
-        private static Statement GetInsertBoundStatement(object[] values)
+        public MainController(Repository repository)
         {
-            return Program.InsertPs.Bind(values);
-        }
-
-        private static Statement GetSelectSimpleStatement(object[] values)
-        {
-            return new SimpleStatement(Program.SelectQuery).Bind(values);
-        }
-
-        private static Statement GetSelectBoundStatement(object[] values)
-        {
-            return Program.SelectPs.Bind(values);
+            _repository = repository;
         }
 
         [HttpGet]
@@ -55,60 +42,15 @@ namespace DataStax.Driver.Benchmarks
             return resp;
         }
 
-        [HttpPost]
-        public async Task<HttpResponseMessage> Insert(int start, int length, bool prepared)
+        public IHttpActionResult JsonTest(UserCredentials credentials)
         {
-            var tasks = new Task[length];
-            Func<object[], Statement> getStmt = GetInsertSimpleStatement;
-            if (prepared)
-            {
-                getStmt = GetInsertBoundStatement;
-            }
-            for (var i = 0; i < length; i++)
-            {
-                var id = (start + i).ToString();
-                var values = new object[] { "user-" + id, "first-" + id, "last-" + id, "pass", new List<string>(new[] { id + "@datastax.com" }), DateTimeOffset.Now };
-                tasks[i] = Program.Session.ExecuteAsync(getStmt(values));
-            }
-            await Task.WhenAll(tasks);
-            var resp = new HttpResponseMessage(HttpStatusCode.OK)
-            {
-                Content = new StringContent("OK", Encoding.UTF8, "text/plain")
-            };
-            return resp;
+            return Ok(credentials);
         }
 
-        [HttpGet]
-        public async Task<HttpResponseMessage> Select(int start, int length, bool prepared)
+        public async Task<IHttpActionResult> InsertCredentials(UserCredentials credentials)
         {
-            var tasks = new Task<RowSet>[length];
-            Func<object[], Statement> getStmt = GetSelectSimpleStatement;
-            if (prepared)
-            {
-                getStmt = GetSelectBoundStatement;
-            }
-            for (var i = 0; i < length; i++)
-            {
-                var values = new object[] { "user-" + (start + i).ToString()};
-                tasks[i] = Program.Session.ExecuteAsync(getStmt(values));
-            }
-            var results = await Task.WhenAll(tasks);
-            var usernames = results
-                .Select(rs =>
-                {
-                    var row = rs.FirstOrDefault();
-                    if (row == null)
-                    {
-                        return null;
-                    }
-                    return row.GetValue<string>("username");
-                })
-                .Where(v => v != null);
-            var resp = new HttpResponseMessage(HttpStatusCode.OK)
-            {
-                Content = new StringContent(String.Join(",", usernames), Encoding.UTF8, "text/plain")
-            };
-            return resp;
+            await _repository.Insert(credentials);
+            return Ok(credentials);
         }
     }
 }
