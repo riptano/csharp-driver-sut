@@ -2,6 +2,8 @@
 
 HTTP wrapper for the DataStax C# driver for Apache Cassandra, suitable for benchmarking.
 
+It uses the [killrvideo schema](https://github.com/pmcfadin/cassandra-videodb-sample-schema/blob/master/videodb-schema.cql).
+
 ## Prerequisites
 
 ### Windows
