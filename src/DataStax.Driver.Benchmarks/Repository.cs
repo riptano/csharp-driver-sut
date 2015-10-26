@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
@@ -35,46 +36,79 @@ namespace DataStax.Driver.Benchmarks
             await _session.ExecuteAsync(_insertPs.Bind(credentials.Email, credentials.Password, credentials.UserId));
         }
 
-        public IStatement[] Preallocate<T>(int length)
+        public IStatement[] Preallocate<T>(bool insert, int length)
         {
+            var items = new IStatement[length];
             if (typeof(T) == typeof(UserCredentials))
             {
-                var items = new IStatement[length];
-                for (var i = 0; i < length; i++)
+                if (insert)
                 {
-                    var id = Guid.NewGuid();
-                    items[i] = _insertPs.Bind(i.ToString(), i.ToString(), id);
+                    for (var i = 0; i < length; i++)
+                    {
+                        var id = Guid.NewGuid();
+                        items[i] = _insertPs.Bind(i.ToString(), i.ToString(), id);
+                    }
+                }
+                else
+                {
+                    for (var i = 0; i < length; i++)
+                    {
+                        items[i] = _selectPs.Bind(i.ToString());
+                    }
                 }
                 return items;
             }
             throw new NotSupportedException(string.Format("Type {0} is not supported", typeof(T)));
         }
 
-        public async Task<long> Execute(IStatement[] statements)
+        public async Task<long> Execute<T>(IStatement[] statements, bool fetchFirst, int parallelism, int maxOutstandingRequests)
         {
-            var semaphore = new SemaphoreSlim(512);
+            //Start launching in parallel
+            var semaphore = new SemaphoreSlim(maxOutstandingRequests);
             var tasks = new Task<RowSet>[statements.Length];
-            var watch = new Stopwatch();
-            watch.Start();
-            for (var i = 0; i < statements.Length; i++)
+            var chunkSize = statements.Length / parallelism;
+            if (chunkSize == 0)
             {
-                await semaphore.WaitAsync();
-                var index = i;
-                var stmt = statements[index];
-                tasks[index] = Task.Run(async () =>
+                chunkSize = 1;
+            }
+            Action<RowSet> fetch = rs =>
+            {
+                var row = rs.FirstOrDefault();
+                if (row != null)
                 {
-                    RowSet rs;
-                    try
+                    row.GetValue<T>(0);
+                }
+            };
+            if (!fetchFirst)
+            {
+                fetch = _ => { };
+            }
+            var statementLength = statements.Length;
+            var launchTasks = new Task[parallelism + 1];
+            for (var i = 0; i < parallelism + 1; i++)
+            {
+                var startIndex = i * chunkSize;
+                launchTasks[i] = Task.Run(async () =>
+                {
+                    for (var j = 0; j < chunkSize; j++)
                     {
-                        rs = await _session.ExecuteAsync(stmt);
-                    }
-                    finally
-                    {
+                        var index = startIndex + j;
+                        if (index >= statementLength)
+                        {
+                            break;
+                        }
+                        await semaphore.WaitAsync();
+                        var t = _session.ExecuteAsync(statements[index]);
+                        tasks[index] = t;
+                        var rs = await t;
                         semaphore.Release();
+                        fetch(rs);
                     }
-                    return rs;
                 });
             }
+            var watch = new Stopwatch();
+            watch.Start();
+            await Task.WhenAll(launchTasks);
             await Task.WhenAll(tasks);
             watch.Stop();
             return watch.ElapsedMilliseconds;

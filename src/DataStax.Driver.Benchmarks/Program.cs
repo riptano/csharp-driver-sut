@@ -2,6 +2,7 @@
 using Owin;
 using System;
 using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Net.Http;
@@ -29,6 +30,10 @@ namespace DataStax.Driver.Benchmarks
             public string Url { get; set; }
             [Option('h', HelpText = "Specifies that http server should be created (Y/N)", Default = 'Y')]
             public char UseHttp { get; set; }
+            [Option('o', HelpText = "Maximum outstanding requests", Default = 1024)]
+            public int MaxOutstandingRequests { get; set; }
+            [Option('p', HelpText = "Level of parallelism", Default = 64)]
+            public int Parallelism { get; set; }
         }
 
         public static ISession Session;
@@ -41,23 +46,21 @@ namespace DataStax.Driver.Benchmarks
             {
                 return;
             }
-            Console.WriteLine(options.UseHttp);
-            Console.WriteLine(options.Url);
-            Console.WriteLine(options.ContactPoint);
             Diagnostics.CassandraTraceSwitch.Level = TraceLevel.Info;
             Trace.Listeners.Add(new ConsoleTraceListener());
             var cluster = Cluster.Builder()
                 .AddContactPoint(options.ContactPoint)
                 .WithSocketOptions(new SocketOptions().SetTcpNoDelay(false))
+                .WithLoadBalancingPolicy(new RoundRobinPolicy())
                 .WithPoolingOptions(new PoolingOptions()
-                    .SetCoreConnectionsPerHost(HostDistance.Local, 4)
-                    .SetMaxConnectionsPerHost(HostDistance.Local, 4)
+                    .SetCoreConnectionsPerHost(HostDistance.Local, 1)
+                    .SetMaxConnectionsPerHost(HostDistance.Local, 1)
                     .SetMaxSimultaneousRequestsPerConnectionTreshold(HostDistance.Local, 2048))
                 .Build();
             Session = cluster.Connect();
             if (options.UseHttp.ToString().ToUpperInvariant() != "Y")
             {
-                SingleScript(Session);
+                SingleScript(Session, options.Parallelism, options.MaxOutstandingRequests);
                 Console.WriteLine("Finished, press any key to continue...");
                 Console.Read();
                 return;
@@ -71,21 +74,41 @@ namespace DataStax.Driver.Benchmarks
             cluster.Shutdown(3000);
         }
 
-        private static void SingleScript(ISession session)
+        private static void SingleScript(ISession session, int parallelism, int maxOutstandingRequests)
         {
             //single instance of repository
-            var repository = new Repository(Session);
-            var statements = repository.Preallocate<UserCredentials>(10);
-            repository.Execute(statements).Wait();
+            var repository = new Repository(session);
+            repository.Execute<object>(repository.Preallocate<UserCredentials>(true, 100), false, 1, 10).Wait();
+            repository.Execute<string>(repository.Preallocate<UserCredentials>(false, 100), true, 1, 10).Wait();
             const int statementLength = 40000;
-            statements = repository.Preallocate<UserCredentials>(statementLength);
+            var statements = repository.Preallocate<UserCredentials>(true, statementLength);
             Task.Run(async () =>
             {
+                var elapsed = new List<long>();
                 for (var i = 0; i < 5; i++)
                 {
-                    var ms = await repository.Execute(statements);
-                    Console.WriteLine("Throughput: {0} ops/s (elapsed {1})", 1000 * statementLength / ms, ms);
+                    // ReSharper disable once AccessToModifiedClosure
+                    elapsed.Add(await repository.Execute<object>(statements, false, parallelism, maxOutstandingRequests));
                 }
+                var averageMs = elapsed.Average();
+                Console.WriteLine("Insert Throughput:\n\tAverage {0:0} ops/s (elapsed {1}) - Median {2} ops/s", 
+                    1000 * statementLength / averageMs, 
+                    averageMs, 
+                    1000 * statementLength / elapsed.OrderBy(x => x).Skip(2).First());
+            }).Wait();
+            statements = repository.Preallocate<UserCredentials>(false, statementLength);
+            Task.Run(async () =>
+            {
+                var elapsed = new List<long>();
+                for (var i = 0; i < 5; i++)
+                {
+                    elapsed.Add(await repository.Execute<string>(statements, true, parallelism, maxOutstandingRequests));
+                }
+                var averageMs = elapsed.Average();
+                Console.WriteLine("Select Throughput:\n\tAverage {0:0} ops/s (elapsed {1}) - Median {2} ops/s",
+                    1000 * statementLength / averageMs,
+                    averageMs,
+                    1000 * statementLength / elapsed.OrderBy(x => x).Skip(2).First());
             }).Wait();
         }
 
