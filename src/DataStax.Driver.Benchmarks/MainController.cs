@@ -12,7 +12,7 @@ using DataStax.Driver.Benchmarks.Models;
 
 namespace DataStax.Driver.Benchmarks
 {
-    public class MainController : ApiController
+    internal class MainController : ApiController
     {
         private readonly Repository _repository;
 

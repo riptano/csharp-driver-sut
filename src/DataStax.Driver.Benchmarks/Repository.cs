@@ -11,7 +11,7 @@ using DataStax.Driver.Benchmarks.Models;
 
 namespace DataStax.Driver.Benchmarks
 {
-    public class Repository
+    internal class Repository
     {
         private static class Queries
         {
@@ -20,12 +20,18 @@ namespace DataStax.Driver.Benchmarks
         }
 
         private readonly ISession _session;
+        private readonly IMetricsTracker _metrics;
+        private readonly int _parallelism;
+        private readonly int _maxOutstandingRequests;
         private readonly PreparedStatement _insertPs;
         private readonly PreparedStatement _selectPs;
 
-        public Repository(ISession session)
+        public Repository(ISession session, IMetricsTracker metrics, int parallelism, int maxOutstandingRequests)
         {
             _session = session;
+            _metrics = metrics;
+            _parallelism = parallelism;
+            _maxOutstandingRequests = maxOutstandingRequests;
             _insertPs = session.Prepare(Queries.InsertCredentials);
             _selectPs = session.Prepare(Queries.SelectCredentials);
         }
@@ -61,12 +67,12 @@ namespace DataStax.Driver.Benchmarks
             throw new NotSupportedException(string.Format("Type {0} is not supported", typeof(T)));
         }
 
-        public async Task<long> Execute<T>(IStatement[] statements, bool fetchFirst, int parallelism, int maxOutstandingRequests)
+        public async Task<long> Execute<T>(IStatement[] statements, bool fetchFirst)
         {
             //Start launching in parallel
-            var semaphore = new SemaphoreSlim(maxOutstandingRequests);
+            var semaphore = new SemaphoreSlim(_maxOutstandingRequests);
             var tasks = new Task<RowSet>[statements.Length];
-            var chunkSize = statements.Length / parallelism;
+            var chunkSize = statements.Length / _parallelism;
             if (chunkSize == 0)
             {
                 chunkSize = 1;
@@ -84,8 +90,8 @@ namespace DataStax.Driver.Benchmarks
                 fetch = _ => { };
             }
             var statementLength = statements.Length;
-            var launchTasks = new Task[parallelism + 1];
-            for (var i = 0; i < parallelism + 1; i++)
+            var launchTasks = new Task[_parallelism + 1];
+            for (var i = 0; i < _parallelism + 1; i++)
             {
                 var startIndex = i * chunkSize;
                 launchTasks[i] = Task.Run(async () =>

@@ -1,22 +1,14 @@
-﻿using Microsoft.Owin.Hosting;
-using Owin;
-using System;
-using System.Collections.Concurrent;
+﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
-using System.Net.Http;
-using System.Threading;
+using System.Net;
+using System.Reflection;
 using System.Threading.Tasks;
-using System.Web.Http;
-using System.Web.Http.Controllers;
-using System.Web.Http.Dispatcher;
 using Cassandra;
-using System.Web.Http.Routing;
 using CommandLine;
 using DataStax.Driver.Benchmarks.Models;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Serialization;
+using Microsoft.Owin.Hosting;
 
 namespace DataStax.Driver.Benchmarks
 {
@@ -34,6 +26,8 @@ namespace DataStax.Driver.Benchmarks
             public int MaxOutstandingRequests { get; set; }
             [Option('p', HelpText = "Level of parallelism", Default = 64)]
             public int Parallelism { get; set; }
+            [Option('m', HelpText = "Metrics endpoint", Default = "127.0.0.1:2003")]
+            public string MetricsEndpoint { get; set; }
         }
 
         public static ISession Session;
@@ -48,9 +42,12 @@ namespace DataStax.Driver.Benchmarks
             }
             Diagnostics.CassandraTraceSwitch.Level = TraceLevel.Info;
             Trace.Listeners.Add(new ConsoleTraceListener());
+            var driverVersion = Version.Parse(FileVersionInfo.GetVersionInfo(
+                Assembly.GetAssembly(typeof (ISession)).Location).FileVersion);
+            Console.WriteLine("Using driver version {0}", driverVersion);
             var cluster = Cluster.Builder()
                 .AddContactPoint(options.ContactPoint)
-                .WithSocketOptions(new SocketOptions().SetTcpNoDelay(false))
+                .WithSocketOptions(new SocketOptions().SetTcpNoDelay(true))
                 .WithLoadBalancingPolicy(new RoundRobinPolicy())
                 .WithPoolingOptions(new PoolingOptions()
                     .SetCoreConnectionsPerHost(HostDistance.Local, 1)
@@ -65,21 +62,26 @@ namespace DataStax.Driver.Benchmarks
                 Console.Read();
                 return;
             }
-            Console.WriteLine("Starting web server");
-            using (WebApp.Start<Startup>(options.Url))
+            Console.WriteLine("Starting benchmarks web server...");
+            var metricsHost = options.MetricsEndpoint.Split(':');
+            var metrics = new MetricsTracker(new IPEndPoint(IPAddress.Parse(metricsHost[0]), Convert.ToInt32(metricsHost[1])), driverVersion);
+            metrics.Update("test", 1L);
+            var repository = new Repository(Session, metrics, options.Parallelism, options.MaxOutstandingRequests);
+            using (WebApp.Start(options.Url, b => WebStartup.Build(repository, b)))
             {
                 Console.WriteLine("Server running on " + options.Url);
                 Console.ReadLine();
             }
+            metrics.Dispose();
             cluster.Shutdown(3000);
         }
 
         private static void SingleScript(ISession session, int parallelism, int maxOutstandingRequests)
         {
             //single instance of repository
-            var repository = new Repository(session);
-            repository.Execute<object>(repository.Preallocate<UserCredentials>(true, 100), false, 1, 10).Wait();
-            repository.Execute<string>(repository.Preallocate<UserCredentials>(false, 100), true, 1, 10).Wait();
+            var repository = new Repository(session, new EmptyMetricsTracker(), parallelism, maxOutstandingRequests);
+            repository.Execute<object>(repository.Preallocate<UserCredentials>(true, 100), false).Wait();
+            repository.Execute<string>(repository.Preallocate<UserCredentials>(false, 100), true).Wait();
             const int statementLength = 40000;
             var statements = repository.Preallocate<UserCredentials>(true, statementLength);
             Task.Run(async () =>
@@ -88,7 +90,7 @@ namespace DataStax.Driver.Benchmarks
                 for (var i = 0; i < 5; i++)
                 {
                     // ReSharper disable once AccessToModifiedClosure
-                    elapsed.Add(await repository.Execute<object>(statements, false, parallelism, maxOutstandingRequests));
+                    elapsed.Add(await repository.Execute<object>(statements, false));
                 }
                 var averageMs = elapsed.Average();
                 Console.WriteLine("Insert Throughput:\n\tAverage {0:0} ops/s (elapsed {1}) - Median {2} ops/s", 
@@ -102,7 +104,7 @@ namespace DataStax.Driver.Benchmarks
                 var elapsed = new List<long>();
                 for (var i = 0; i < 5; i++)
                 {
-                    elapsed.Add(await repository.Execute<string>(statements, true, parallelism, maxOutstandingRequests));
+                    elapsed.Add(await repository.Execute<string>(statements, true));
                 }
                 var averageMs = elapsed.Average();
                 Console.WriteLine("Select Throughput:\n\tAverage {0:0} ops/s (elapsed {1}) - Median {2} ops/s",
@@ -111,53 +113,5 @@ namespace DataStax.Driver.Benchmarks
                     1000 * statementLength / elapsed.OrderBy(x => x).Skip(2).First());
             }).Wait();
         }
-
-        public class Startup
-        {
-            public void Configuration(IAppBuilder appBuilder)
-            {
-                var config = new HttpConfiguration();
-                config.Routes.MapHttpRoute("Home", "", new { controller = "Main", action = "Index" });
-                config.Routes.MapHttpRoute("Now", "cassandra", new { controller = "Main", action = "Now" });
-                config.Routes.MapHttpRoute("JsonTest", "json-test", new
-                {
-                    controller = "Main", action = "JsonTest"
-                }, new
-                {
-                    httpMethod = new HttpMethodConstraint(HttpMethod.Post)
-                });
-                config.Routes.MapHttpRoute("Insert-Prepared", "prepared-statements/users", new
-                {
-                    controller = "Main", action = "InsertCredentials", email = "fixed", password = "fixed", prepared = true
-                }, new
-                {
-                    httpMethod = new HttpMethodConstraint(HttpMethod.Post)
-                });
-                //single instance of Repository
-                //poor man's DI
-                var repository = new Repository(Session);
-                config.Services.Replace(typeof(IHttpControllerActivator), new SingleControllerActivator(repository));
-                var jsonSettings = config.Formatters.JsonFormatter.SerializerSettings;
-                jsonSettings.Formatting = Formatting.Indented;
-                //Use camel case json
-                jsonSettings.ContractResolver = new CamelCasePropertyNamesContractResolver();
-                appBuilder.UseWebApi(config);
-            }
-        }
-
-        public class SingleControllerActivator : IHttpControllerActivator
-        {
-            private readonly Repository _repository;
-
-            public SingleControllerActivator(Repository repository)
-            {
-                _repository = repository;
-            }
-
-            public IHttpController Create(HttpRequestMessage request, HttpControllerDescriptor controllerDescriptor, Type controllerType)
-            {
-                return new MainController(_repository);
-            }
-        } 
     }
 }
