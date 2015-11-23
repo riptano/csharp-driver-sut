@@ -4,6 +4,7 @@ using System.Diagnostics;
 using System.Linq;
 using System.Net;
 using System.Reflection;
+using System.Threading;
 using System.Threading.Tasks;
 using Cassandra;
 using CommandLine;
@@ -18,11 +19,11 @@ namespace DataStax.Driver.Benchmarks
         {
             [Option('c', HelpText = "The Cluster contact point", Default = "127.0.0.1")]
             public string ContactPoint { get; set; }
-            [Option('u', HelpText = "The web app entry point", Default = "http://localhost:8081/")]
+            [Option('e', HelpText = "The web app entry point", Default = "http://localhost:8080/")]
             public string Url { get; set; }
-            [Option('h', HelpText = "Specifies that http server should be created (Y/N)", Default = 'Y')]
+            [Option('u', HelpText = "Specifies that http server should be created (Y/N)", Default = 'Y')]
             public char UseHttp { get; set; }
-            [Option('o', HelpText = "Maximum outstanding requests", Default = 1024)]
+            [Option('o', HelpText = "Maximum outstanding requests", Default = 2048)]
             public int MaxOutstandingRequests { get; set; }
             [Option('p', HelpText = "Level of parallelism", Default = 64)]
             public int Parallelism { get; set; }
@@ -57,6 +58,7 @@ namespace DataStax.Driver.Benchmarks
             Session = cluster.Connect();
             if (options.UseHttp.ToString().ToUpperInvariant() != "Y")
             {
+                Console.WriteLine("Using single script");
                 SingleScript(Session, options.Parallelism, options.MaxOutstandingRequests);
                 Console.WriteLine("Finished, press any key to continue...");
                 Console.Read();
@@ -65,8 +67,7 @@ namespace DataStax.Driver.Benchmarks
             Console.WriteLine("Starting benchmarks web server...");
             var metricsHost = options.MetricsEndpoint.Split(':');
             var metrics = new MetricsTracker(new IPEndPoint(IPAddress.Parse(metricsHost[0]), Convert.ToInt32(metricsHost[1])), driverVersion);
-            metrics.Update("test", 1L);
-            var repository = new Repository(Session, metrics, options.Parallelism, options.MaxOutstandingRequests);
+            var repository = new Repository(Session, metrics, new SemaphoreSlim(options.MaxOutstandingRequests), options.Parallelism);
             using (WebApp.Start(options.Url, b => WebStartup.Build(repository, b)))
             {
                 Console.WriteLine("Server running on " + options.Url);
@@ -79,21 +80,21 @@ namespace DataStax.Driver.Benchmarks
         private static void SingleScript(ISession session, int parallelism, int maxOutstandingRequests)
         {
             //single instance of repository
-            var repository = new Repository(session, new EmptyMetricsTracker(), parallelism, maxOutstandingRequests);
+            var repository = new Repository(session, new EmptyMetricsTracker(), new SemaphoreSlim(maxOutstandingRequests), parallelism);
             repository.Execute<object>(repository.Preallocate<UserCredentials>(true, 100), false).Wait();
-            repository.Execute<string>(repository.Preallocate<UserCredentials>(false, 100), true).Wait();
-            const int statementLength = 40000;
+            repository.Execute<string>(repository.Preallocate<UserCredentials>(false, 100), false).Wait();
+            const int statementLength = 50000;
             var statements = repository.Preallocate<UserCredentials>(true, statementLength);
             Task.Run(async () =>
             {
                 var elapsed = new List<long>();
-                for (var i = 0; i < 5; i++)
+                for (var i = 0; i < 3; i++)
                 {
                     // ReSharper disable once AccessToModifiedClosure
                     elapsed.Add(await repository.Execute<object>(statements, false));
                 }
                 var averageMs = elapsed.Average();
-                Console.WriteLine("Insert Throughput:\n\tAverage {0:0} ops/s (elapsed {1}) - Median {2} ops/s", 
+                Console.WriteLine("Insert Throughput:\n\tAverage {0:0} ops/s (elapsed {1:0}) - Median {2} ops/s", 
                     1000 * statementLength / averageMs, 
                     averageMs, 
                     1000 * statementLength / elapsed.OrderBy(x => x).Skip(2).First());
@@ -102,15 +103,15 @@ namespace DataStax.Driver.Benchmarks
             Task.Run(async () =>
             {
                 var elapsed = new List<long>();
-                for (var i = 0; i < 5; i++)
+                for (var i = 0; i < 3; i++)
                 {
-                    elapsed.Add(await repository.Execute<string>(statements, true));
+                    elapsed.Add(await repository.Execute<string>(statements, false));
                 }
                 var averageMs = elapsed.Average();
-                Console.WriteLine("Select Throughput:\n\tAverage {0:0} ops/s (elapsed {1}) - Median {2} ops/s",
+                Console.WriteLine("Select Throughput:\n\tAverage {0:0} ops/s (elapsed {1:0}) - Min {2} ops/s",
                     1000 * statementLength / averageMs,
                     averageMs,
-                    1000 * statementLength / elapsed.OrderBy(x => x).Skip(2).First());
+                    1000 * statementLength / elapsed.Max());
             }).Wait();
         }
     }

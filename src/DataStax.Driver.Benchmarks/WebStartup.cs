@@ -28,16 +28,21 @@ namespace DataStax.Driver.Benchmarks
             {
                 httpMethod = new HttpMethodConstraint(HttpMethod.Post)
             });
-            config.Routes.MapHttpRoute("Insert-Prepared", "prepared-statements/users", new
+            config.Routes.MapHttpRoute("Insert-Prepared", "prepared-statements/credentials", new
             {
                 controller = "Main",
-                action = "InsertCredentials",
-                email = "fixed",
-                password = "fixed",
-                prepared = true
+                action = "InsertCredentials"
             }, new
             {
                 httpMethod = new HttpMethodConstraint(HttpMethod.Post)
+            });
+            config.Routes.MapHttpRoute("Get-Prepared", "prepared-statements/credentials/{email}", new
+            {
+                controller = "Main",
+                action = "GetCredentials"
+            }, new
+            {
+                httpMethod = new HttpMethodConstraint(HttpMethod.Get)
             });
             //single instance of Repository
             //poor man's DI

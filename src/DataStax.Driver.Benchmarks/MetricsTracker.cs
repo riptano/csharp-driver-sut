@@ -33,7 +33,7 @@ namespace DataStax.Driver.Benchmarks
             _timer = new Timer(TimerTick, null, ExportThroughputPeriod, ExportThroughputPeriod);
         }
 
-        public void Update(string key, long diff)
+        public void Update(string key, long elapsed)
         {
             var throughputMeter = Metric.Meter(key, Unit.Requests, TimeUnit.Seconds);
             _keys.GetOrAdd(key, k => true);
@@ -90,15 +90,15 @@ namespace DataStax.Driver.Benchmarks
         }
     }
 
-    internal interface IMetricsTracker: IDisposable
+    public interface IMetricsTracker: IDisposable
     {
-        void Update(string key, long diff);
+        void Update(string key, long elapsed);
     }
 
     internal class EmptyMetricsTracker : IMetricsTracker
     {
         public void Dispose() { }
 
-        public void Update(string key, long diff) { }
+        public void Update(string key, long elapsed) { }
     }
 }

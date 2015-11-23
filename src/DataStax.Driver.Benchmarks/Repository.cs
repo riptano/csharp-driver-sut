@@ -11,27 +11,29 @@ using DataStax.Driver.Benchmarks.Models;
 
 namespace DataStax.Driver.Benchmarks
 {
-    internal class Repository
+    public class Repository
     {
         private static class Queries
         {
             public const string InsertCredentials = "INSERT INTO killrvideo.user_credentials (email, password, userid) VALUES (?, ?, ?)";
-            public const string SelectCredentials = "SELECT email, password, userid FROM killrvideo.user_credentials WHERE email = ?";
+            public const string SelectCredentials = "SELECT userid FROM killrvideo.user_credentials WHERE email = ?";
         }
 
         private readonly ISession _session;
         private readonly IMetricsTracker _metrics;
+        private readonly SemaphoreSlim _semaphore;
         private readonly int _parallelism;
-        private readonly int _maxOutstandingRequests;
+        private readonly int _repeatLength;
         private readonly PreparedStatement _insertPs;
         private readonly PreparedStatement _selectPs;
 
-        public Repository(ISession session, IMetricsTracker metrics, int parallelism, int maxOutstandingRequests)
+        public Repository(ISession session, IMetricsTracker metrics, SemaphoreSlim semaphore, int parallelism, int repeatLength = 1000)
         {
             _session = session;
             _metrics = metrics;
+            _semaphore = semaphore;
             _parallelism = parallelism;
-            _maxOutstandingRequests = maxOutstandingRequests;
+            _repeatLength = repeatLength;
             _insertPs = session.Prepare(Queries.InsertCredentials);
             _selectPs = session.Prepare(Queries.SelectCredentials);
         }
@@ -39,7 +41,63 @@ namespace DataStax.Driver.Benchmarks
         public async Task Insert(UserCredentials credentials)
         {
             credentials.UserId = Guid.NewGuid();
-            await _session.ExecuteAsync(_insertPs.Bind(credentials.Email, credentials.Password, credentials.UserId));
+            await ExecuteMultiple("prepared-insert-user_credentials", _insertPs, credentials.Email, credentials.Password, credentials.UserId);
+        }
+
+        internal async Task<UserCredentials> GetCredentials(string email)
+        {
+            var rs = await ExecuteMultiple("prepared-select-user_credentials", _selectPs, email);
+            var row = rs.First();
+            return new UserCredentials
+            {
+                Email = email,
+                Password = null,
+                UserId = row.GetValue<Guid>("userid")
+            };
+        }
+
+        private async Task<RowSet> ExecuteMultiple(string key, PreparedStatement ps, params object[] values)
+        {
+            var statements = new IStatement[_repeatLength];
+            for (var i = 0; i < _repeatLength; i++)
+            {
+                statements[i] = ps.Bind(values);
+            }
+            //round not truncate the value
+            var chunkSize = Convert.ToInt32((double)statements.Length / _parallelism);
+            if (chunkSize == 0)
+            {
+                chunkSize = 1;
+            }
+            var launchTasks = new Task[_parallelism + 1];
+            var tasks = new Task<RowSet>[statements.Length];
+            for (var i = 0; i < _parallelism + 1; i++)
+            {
+                var startIndex = i * chunkSize;
+                launchTasks[i] = Task.Run(async () =>
+                {
+                    for (var j = 0; j < chunkSize; j++)
+                    {
+                        var index = startIndex + j;
+                        if (index >= _repeatLength)
+                        {
+                            break;
+                        }
+                        var stopWatch = new Stopwatch();
+                        await _semaphore.WaitAsync();
+                        stopWatch.Start();
+                        var t = _session.ExecuteAsync(statements[index]);
+                        tasks[index] = t;
+                        await t;
+                        stopWatch.Stop();
+                        _semaphore.Release();
+                        _metrics.Update(key, stopWatch.ElapsedMilliseconds);
+                    }
+                });
+            }
+            await Task.WhenAll(launchTasks);
+            await Task.WhenAll(tasks);
+            return tasks[0].Result;
         }
 
         public IStatement[] Preallocate<T>(bool insert, int length)
@@ -70,7 +128,6 @@ namespace DataStax.Driver.Benchmarks
         public async Task<long> Execute<T>(IStatement[] statements, bool fetchFirst)
         {
             //Start launching in parallel
-            var semaphore = new SemaphoreSlim(_maxOutstandingRequests);
             var tasks = new Task<RowSet>[statements.Length];
             var chunkSize = statements.Length / _parallelism;
             if (chunkSize == 0)
@@ -103,11 +160,11 @@ namespace DataStax.Driver.Benchmarks
                         {
                             break;
                         }
-                        await semaphore.WaitAsync();
+                        await _semaphore.WaitAsync();
                         var t = _session.ExecuteAsync(statements[index]);
                         tasks[index] = t;
                         var rs = await t;
-                        semaphore.Release();
+                        _semaphore.Release();
                         fetch(rs);
                     }
                 });

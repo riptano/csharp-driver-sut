@@ -12,7 +12,7 @@ using DataStax.Driver.Benchmarks.Models;
 
 namespace DataStax.Driver.Benchmarks
 {
-    internal class MainController : ApiController
+    public class MainController : ApiController
     {
         private readonly Repository _repository;
 
@@ -37,7 +37,7 @@ namespace DataStax.Driver.Benchmarks
             var row = Program.Session.Execute("SELECT NOW() FROM system.local").First();
             var resp = new HttpResponseMessage(HttpStatusCode.OK)
             {
-                Content = new StringContent("Now: " + row.GetValue<TimeUuid>("NOW()"), Encoding.UTF8, "text/plain")
+                Content = new StringContent("Now: " + row.GetValue<TimeUuid>(0), Encoding.UTF8, "text/plain")
             };
             return resp;
         }
@@ -51,6 +51,12 @@ namespace DataStax.Driver.Benchmarks
         {
             await _repository.Insert(credentials);
             return Ok(credentials);
+        }
+
+        public async Task<IHttpActionResult> GetCredentials(string email)
+        {
+            var credentials = await _repository.GetCredentials(email);
+            return Json(credentials);
         }
     }
 }
