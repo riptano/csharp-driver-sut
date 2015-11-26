@@ -26,14 +26,15 @@ namespace DataStax.Driver.Benchmarks
         private readonly int _repeatLength;
         private readonly PreparedStatement _insertPs;
         private readonly PreparedStatement _selectPs;
+        private readonly TaskScheduler _scheduler;
 
-        public Repository(ISession session, IMetricsTracker metrics, SemaphoreSlim semaphore, int parallelism, int repeatLength = 1000)
+        public Repository(ISession session, IMetricsTracker metrics, Options options)
         {
             _session = session;
             _metrics = metrics;
-            _semaphore = semaphore;
-            _parallelism = parallelism;
-            _repeatLength = repeatLength;
+            _semaphore = new SemaphoreSlim(options.MaxOutstandingRequests * session.Cluster.AllHosts().Count);
+            _parallelism = options.Parallelism;
+            _repeatLength = options.CqlRequestsPerHttpRequest;
             _insertPs = session.Prepare(Queries.InsertCredentials);
             _selectPs = session.Prepare(Queries.SelectCredentials);
         }
@@ -47,7 +48,11 @@ namespace DataStax.Driver.Benchmarks
         internal async Task<UserCredentials> GetCredentials(string email)
         {
             var rs = await ExecuteMultiple("prepared-select-user_credentials", _selectPs, email);
-            var row = rs.First();
+            var row = rs.FirstOrDefault();
+            if (row == null)
+            {
+                return null;
+            }
             return new UserCredentials
             {
                 Email = email,
@@ -58,19 +63,14 @@ namespace DataStax.Driver.Benchmarks
 
         private async Task<RowSet> ExecuteMultiple(string key, PreparedStatement ps, params object[] values)
         {
-            var statements = new IStatement[_repeatLength];
-            for (var i = 0; i < _repeatLength; i++)
-            {
-                statements[i] = ps.Bind(values);
-            }
-            //round not truncate the value
-            var chunkSize = Convert.ToInt32((double)statements.Length / _parallelism);
+            var statement = ps.Bind(values);
+            var chunkSize = Convert.ToInt32((double)_repeatLength / _parallelism);
             if (chunkSize == 0)
             {
                 chunkSize = 1;
             }
             var launchTasks = new Task[_parallelism + 1];
-            var tasks = new Task<RowSet>[statements.Length];
+            var tasks = new Task<RowSet>[_repeatLength];
             for (var i = 0; i < _parallelism + 1; i++)
             {
                 var startIndex = i * chunkSize;
@@ -86,7 +86,7 @@ namespace DataStax.Driver.Benchmarks
                         var stopWatch = new Stopwatch();
                         await _semaphore.WaitAsync();
                         stopWatch.Start();
-                        var t = _session.ExecuteAsync(statements[index]);
+                        var t = _session.ExecuteAsync(statement);
                         tasks[index] = t;
                         await t;
                         stopWatch.Stop();
@@ -94,6 +94,7 @@ namespace DataStax.Driver.Benchmarks
                         _metrics.Update(key, stopWatch.ElapsedMilliseconds);
                     }
                 });
+
             }
             await Task.WhenAll(launchTasks);
             await Task.WhenAll(tasks);
@@ -125,6 +126,12 @@ namespace DataStax.Driver.Benchmarks
             throw new NotSupportedException(string.Format("Type {0} is not supported", typeof(T)));
         }
 
+        public async Task<TimeUuid> Now()
+        {
+            var rs = await _session.ExecuteAsync(new SimpleStatement("SELECT NOW() FROM system.local"));
+            return rs.First().GetValue<TimeUuid>(0);
+        }
+
         public async Task<long> Execute<T>(IStatement[] statements, bool fetchFirst)
         {
             //Start launching in parallel
@@ -133,18 +140,6 @@ namespace DataStax.Driver.Benchmarks
             if (chunkSize == 0)
             {
                 chunkSize = 1;
-            }
-            Action<RowSet> fetch = rs =>
-            {
-                var row = rs.FirstOrDefault();
-                if (row != null)
-                {
-                    row.GetValue<T>(0);
-                }
-            };
-            if (!fetchFirst)
-            {
-                fetch = _ => { };
             }
             var statementLength = statements.Length;
             var launchTasks = new Task[_parallelism + 1];
@@ -165,7 +160,6 @@ namespace DataStax.Driver.Benchmarks
                         tasks[index] = t;
                         var rs = await t;
                         _semaphore.Release();
-                        fetch(rs);
                     }
                 });
             }

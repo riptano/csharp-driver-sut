@@ -32,12 +32,12 @@ namespace DataStax.Driver.Benchmarks
         }
 
         [HttpGet]
-        public HttpResponseMessage Now()
+        public async Task<HttpResponseMessage> Now()
         {
-            var row = Program.Session.Execute("SELECT NOW() FROM system.local").First();
+            var time = await _repository.Now();
             var resp = new HttpResponseMessage(HttpStatusCode.OK)
             {
-                Content = new StringContent("Now: " + row.GetValue<TimeUuid>(0), Encoding.UTF8, "text/plain")
+                Content = new StringContent("Now: " + time, Encoding.UTF8, "text/plain")
             };
             return resp;
         }
