@@ -19,8 +19,8 @@ namespace DataStax.Driver.Benchmarks
         public int Parallelism { get; set; }
         [Option('o', HelpText = "Maximum outstanding requests per host", Default = 2048)]
         public int MaxOutstandingRequests { get; set; }
-        [Option('r', HelpText = "Amount of driver requests per http request", Default = 1000)]
-        public int CqlRequestsPerHttpRequest { get; set; }
+        [Option('r', HelpText = "Amount of CQL requests per call (http request or script)", Default = 10000)]
+        public int CqlRequests { get; set; }
         [Option('m', HelpText = "Metrics endpoint", Default = "127.0.0.1:2003")]
         public string MetricsEndpoint { get; set; }
     }

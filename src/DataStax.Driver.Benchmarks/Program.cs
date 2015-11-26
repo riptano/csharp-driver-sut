@@ -36,6 +36,7 @@ namespace DataStax.Driver.Benchmarks
                     .SetCoreConnectionsPerHost(HostDistance.Local, 1)
                     .SetMaxConnectionsPerHost(HostDistance.Local, 1)
                     .SetMaxSimultaneousRequestsPerConnectionTreshold(HostDistance.Local, 2048))
+                .WithQueryOptions(new QueryOptions().SetConsistencyLevel(ConsistencyLevel.LocalOne))
                 .Build();
             var session = cluster.Connect();
             if (options.UseHttp.ToString().ToUpperInvariant() != "Y")
@@ -63,17 +64,17 @@ namespace DataStax.Driver.Benchmarks
         {
             //single instance of repository
             var repository = new Repository(session, new EmptyMetricsTracker(), options);
-            repository.Execute<object>(repository.Preallocate<UserCredentials>(true, 100), false).Wait();
-            repository.Execute<string>(repository.Preallocate<UserCredentials>(false, 100), false).Wait();
-            const int statementLength = 40000;
-            var statements = repository.Preallocate<UserCredentials>(true, statementLength);
+            var statementLength = options.CqlRequests;
             Task.Run(async () =>
             {
                 var elapsed = new List<long>();
                 for (var i = 0; i < 5; i++)
                 {
-                    // ReSharper disable once AccessToModifiedClosure
-                    elapsed.Add(await repository.Execute<object>(statements, false));
+                    var stopWatch = new Stopwatch();
+                    stopWatch.Start();
+                    await repository.Insert(new UserCredentials {Email = "a", Password = "b", UserId = Guid.NewGuid()});
+                    stopWatch.Stop();
+                    elapsed.Add(stopWatch.ElapsedMilliseconds);
                 }
                 var averageMs = elapsed.Average();
                 Console.WriteLine("Insert Throughput:\n\tAverage {0:0} ops/s (elapsed {1:0}) - Median {2} ops/s", 
@@ -81,19 +82,23 @@ namespace DataStax.Driver.Benchmarks
                     averageMs, 
                     1000 * statementLength / elapsed.OrderBy(x => x).Skip(2).First());
             }).Wait();
-            statements = repository.Preallocate<UserCredentials>(false, statementLength);
+            GC.Collect();
             Task.Run(async () =>
             {
                 var elapsed = new List<long>();
-                for (var i = 0; i < 3; i++)
+                for (var i = 0; i < 5; i++)
                 {
-                    elapsed.Add(await repository.Execute<string>(statements, false));
+                    var stopWatch = new Stopwatch();
+                    stopWatch.Start();
+                    await repository.GetCredentials("a");
+                    stopWatch.Stop();
+                    elapsed.Add(stopWatch.ElapsedMilliseconds);
                 }
                 var averageMs = elapsed.Average();
-                Console.WriteLine("Select Throughput:\n\tAverage {0:0} ops/s (elapsed {1:0}) - Min {2} ops/s",
+                Console.WriteLine("Select Throughput:\n\tAverage {0:0} ops/s (elapsed {1:0}) - Median {2} ops/s",
                     1000 * statementLength / averageMs,
                     averageMs,
-                    1000 * statementLength / elapsed.Max());
+                    1000 * statementLength / elapsed.OrderBy(x => x).Skip(2).First());
             }).Wait();
         }
     }

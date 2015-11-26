@@ -26,7 +26,6 @@ namespace DataStax.Driver.Benchmarks
         private readonly int _repeatLength;
         private readonly PreparedStatement _insertPs;
         private readonly PreparedStatement _selectPs;
-        private readonly TaskScheduler _scheduler;
 
         public Repository(ISession session, IMetricsTracker metrics, Options options)
         {
@@ -34,7 +33,7 @@ namespace DataStax.Driver.Benchmarks
             _metrics = metrics;
             _semaphore = new SemaphoreSlim(options.MaxOutstandingRequests * session.Cluster.AllHosts().Count);
             _parallelism = options.Parallelism;
-            _repeatLength = options.CqlRequestsPerHttpRequest;
+            _repeatLength = options.CqlRequests;
             _insertPs = session.Prepare(Queries.InsertCredentials);
             _selectPs = session.Prepare(Queries.SelectCredentials);
         }
@@ -101,74 +100,10 @@ namespace DataStax.Driver.Benchmarks
             return tasks[0].Result;
         }
 
-        public IStatement[] Preallocate<T>(bool insert, int length)
-        {
-            var items = new IStatement[length];
-            if (typeof(T) == typeof(UserCredentials))
-            {
-                if (insert)
-                {
-                    for (var i = 0; i < length; i++)
-                    {
-                        var id = Guid.NewGuid();
-                        items[i] = _insertPs.Bind(i.ToString(), i.ToString(), id);
-                    }
-                }
-                else
-                {
-                    for (var i = 0; i < length; i++)
-                    {
-                        items[i] = _selectPs.Bind(i.ToString());
-                    }
-                }
-                return items;
-            }
-            throw new NotSupportedException(string.Format("Type {0} is not supported", typeof(T)));
-        }
-
         public async Task<TimeUuid> Now()
         {
             var rs = await _session.ExecuteAsync(new SimpleStatement("SELECT NOW() FROM system.local"));
             return rs.First().GetValue<TimeUuid>(0);
-        }
-
-        public async Task<long> Execute<T>(IStatement[] statements, bool fetchFirst)
-        {
-            //Start launching in parallel
-            var tasks = new Task<RowSet>[statements.Length];
-            var chunkSize = statements.Length / _parallelism;
-            if (chunkSize == 0)
-            {
-                chunkSize = 1;
-            }
-            var statementLength = statements.Length;
-            var launchTasks = new Task[_parallelism + 1];
-            for (var i = 0; i < _parallelism + 1; i++)
-            {
-                var startIndex = i * chunkSize;
-                launchTasks[i] = Task.Run(async () =>
-                {
-                    for (var j = 0; j < chunkSize; j++)
-                    {
-                        var index = startIndex + j;
-                        if (index >= statementLength)
-                        {
-                            break;
-                        }
-                        await _semaphore.WaitAsync();
-                        var t = _session.ExecuteAsync(statements[index]);
-                        tasks[index] = t;
-                        var rs = await t;
-                        _semaphore.Release();
-                    }
-                });
-            }
-            var watch = new Stopwatch();
-            watch.Start();
-            await Task.WhenAll(launchTasks);
-            await Task.WhenAll(tasks);
-            watch.Stop();
-            return watch.ElapsedMilliseconds;
         }
     }
 }
