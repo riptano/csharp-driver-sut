@@ -22,7 +22,6 @@ namespace DataStax.Driver.Benchmarks
         private readonly ISession _session;
         private readonly IMetricsTracker _metrics;
         private readonly SemaphoreSlim _semaphore;
-        private readonly int _parallelism;
         private readonly int _repeatLength;
         private readonly PreparedStatement _insertPs;
         private readonly PreparedStatement _selectPs;
@@ -32,7 +31,6 @@ namespace DataStax.Driver.Benchmarks
             _session = session;
             _metrics = metrics;
             _semaphore = new SemaphoreSlim(options.MaxOutstandingRequests * session.Cluster.AllHosts().Count);
-            _parallelism = options.Parallelism;
             _repeatLength = options.CqlRequests;
             _insertPs = session.Prepare(Queries.InsertCredentials);
             _selectPs = session.Prepare(Queries.SelectCredentials);
@@ -63,47 +61,65 @@ namespace DataStax.Driver.Benchmarks
         private async Task<RowSet> ExecuteMultiple(string key, PreparedStatement ps, params object[] values)
         {
             var statement = ps.Bind(values);
-            var chunkSize = Convert.ToInt32((double)_repeatLength / _parallelism);
-            if (chunkSize == 0)
+            var maxInFlight = _semaphore.CurrentCount;
+            var counter = new SendReceiveCounter();
+            var tcs = new TaskCompletionSource<RowSet>();
+            for (var i = 0; i < maxInFlight; i++)
             {
-                chunkSize = 1;
+                SendNew(key, statement, tcs, counter);
             }
-            var launchTasks = new Task[_parallelism + 1];
-            var tasks = new Task<RowSet>[_repeatLength];
-            for (var i = 0; i < _parallelism + 1; i++)
-            {
-                var startIndex = i * chunkSize;
-                launchTasks[i] = Task.Run(async () =>
-                {
-                    for (var j = 0; j < chunkSize; j++)
-                    {
-                        var index = startIndex + j;
-                        if (index >= _repeatLength)
-                        {
-                            break;
-                        }
-                        var stopWatch = new Stopwatch();
-                        await _semaphore.WaitAsync();
-                        stopWatch.Start();
-                        var t = _session.ExecuteAsync(statement);
-                        tasks[index] = t;
-                        await t;
-                        stopWatch.Stop();
-                        _semaphore.Release();
-                        _metrics.Update(key, stopWatch.ElapsedMilliseconds);
-                    }
-                });
+            return await tcs.Task;
+        }
 
+        private void SendNew(string key, IStatement statement, TaskCompletionSource<RowSet> tcs, SendReceiveCounter counter)
+        {
+            if (counter.IncrementSent() > _repeatLength)
+            {
+                return;
             }
-            await Task.WhenAll(launchTasks);
-            await Task.WhenAll(tasks);
-            return tasks[0].Result;
+            var stopWatch = new Stopwatch();
+            stopWatch.Start();
+            //var t1 = Task.Run(async () => await _session.ExecuteAsync(statement));
+            var t1 = _session.ExecuteAsync(statement);
+            t1.ContinueWith(t =>
+            {
+                stopWatch.Stop();
+                if (t.Exception != null)
+                {
+                    tcs.TrySetException(t.Exception.InnerException);
+                    return;
+                }
+                _metrics.Update(key, stopWatch.ElapsedMilliseconds);
+                var received = counter.IncrementReceived();
+                if (received == _repeatLength)
+                {
+                    tcs.TrySetResult(t.Result);
+                    return;
+                }
+                SendNew(key, statement, tcs, counter);
+            }, TaskContinuationOptions.ExecuteSynchronously);
         }
 
         public async Task<TimeUuid> Now()
         {
             var rs = await _session.ExecuteAsync(new SimpleStatement("SELECT NOW() FROM system.local"));
             return rs.First().GetValue<TimeUuid>(0);
+        }
+
+        private class SendReceiveCounter
+        {
+            private int _receiveCounter;
+            private int _sendCounter;
+
+            public int IncrementSent()
+            {
+                return Interlocked.Increment(ref _sendCounter);
+            }
+
+            public int IncrementReceived()
+            {
+                return Interlocked.Increment(ref _receiveCounter);
+            }
         }
     }
 }
