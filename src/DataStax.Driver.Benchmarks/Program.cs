@@ -33,8 +33,8 @@ namespace DataStax.Driver.Benchmarks
                 .WithSocketOptions(new SocketOptions().SetTcpNoDelay(true).SetReadTimeoutMillis(0))
                 .WithLoadBalancingPolicy(new RoundRobinPolicy())
                 .WithPoolingOptions(new PoolingOptions()
-                    .SetCoreConnectionsPerHost(HostDistance.Local, 1)
-                    .SetMaxConnectionsPerHost(HostDistance.Local, 1)
+                    .SetCoreConnectionsPerHost(HostDistance.Local, options.ConnectionsPerHost)
+                    .SetMaxConnectionsPerHost(HostDistance.Local, options.ConnectionsPerHost)
                     .SetMaxSimultaneousRequestsPerConnectionTreshold(HostDistance.Local, 2048))
                 .WithQueryOptions(new QueryOptions().SetConsistencyLevel(ConsistencyLevel.LocalOne))
                 .Build();

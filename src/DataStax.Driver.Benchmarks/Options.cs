@@ -15,8 +15,8 @@ namespace DataStax.Driver.Benchmarks
         public string Url { get; set; }
         [Option('s', HelpText = "Specifies that http server should be created (Y/N)", Default = 'Y')]
         public char UseHttp { get; set; }
-        [Option('p', HelpText = "Level of parallelism", Default = 64)]
-        public int Parallelism { get; set; }
+        [Option('p', HelpText = "Amount of connections per host", Default = 1)]
+        public int ConnectionsPerHost { get; set; }
         [Option('o', HelpText = "Maximum outstanding requests per host", Default = 2048)]
         public int MaxOutstandingRequests { get; set; }
         [Option('r', HelpText = "Amount of CQL requests per call (http request or script)", Default = 10000)]

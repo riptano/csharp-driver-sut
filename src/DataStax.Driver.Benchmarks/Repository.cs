@@ -49,7 +49,7 @@ namespace DataStax.Driver.Benchmarks
 
         internal async Task<UserCredentials> GetCredentials(string email)
         {
-            var rs = await ExecuteMultiple("prepared-select-user_credentials", _selectPs, email);
+            var rs = await Execute("prepared-select-user_credentials", _selectPs, email);
             var row = rs.FirstOrDefault();
             if (row == null)
             {
