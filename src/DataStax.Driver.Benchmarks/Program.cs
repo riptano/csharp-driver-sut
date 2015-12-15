@@ -50,7 +50,7 @@ namespace DataStax.Driver.Benchmarks
             Console.WriteLine("Starting benchmarks web server...");
             var metricsHost = options.MetricsEndpoint.Split(':');
             var metrics = new MetricsTracker(new IPEndPoint(IPAddress.Parse(metricsHost[0]), Convert.ToInt32(metricsHost[1])), driverVersion);
-            var repository = new Repository(session, metrics, options);
+            var repository = new Repository(session, metrics, true, options);
             using (WebApp.Start(options.Url, b => WebStartup.Build(repository, b)))
             {
                 Console.WriteLine("Server running on " + options.Url);
@@ -62,8 +62,9 @@ namespace DataStax.Driver.Benchmarks
 
         private static void SingleScript(ISession session, Options options)
         {
+            var metrics = new EmptyMetricsTracker();
             //single instance of repository
-            var repository = new Repository(session, new EmptyMetricsTracker(), options);
+            var repository = new Repository(session, metrics, false, options);
             var statementLength = options.CqlRequests;
             Task.Run(async () =>
             {

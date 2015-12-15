@@ -8,6 +8,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Cassandra;
 using DataStax.Driver.Benchmarks.Models;
+#pragma warning disable 4014
 
 namespace DataStax.Driver.Benchmarks
 {
@@ -21,16 +22,20 @@ namespace DataStax.Driver.Benchmarks
 
         private readonly ISession _session;
         private readonly IMetricsTracker _metrics;
+        private readonly bool _globallyLimited;
         private readonly SemaphoreSlim _semaphore;
         private readonly int _repeatLength;
         private readonly PreparedStatement _insertPs;
         private readonly PreparedStatement _selectPs;
+        private readonly int _maxInFlight;
 
-        public Repository(ISession session, IMetricsTracker metrics, Options options)
+        public Repository(ISession session, IMetricsTracker metrics, bool globallyLimited, Options options)
         {
             _session = session;
             _metrics = metrics;
-            _semaphore = new SemaphoreSlim(options.MaxOutstandingRequests * session.Cluster.AllHosts().Count);
+            _globallyLimited = globallyLimited;
+            _maxInFlight = options.MaxOutstandingRequests * session.Cluster.AllHosts().Count;
+            _semaphore = new SemaphoreSlim(_maxInFlight);
             _repeatLength = options.CqlRequests;
             _insertPs = session.Prepare(Queries.InsertCredentials);
             _selectPs = session.Prepare(Queries.SelectCredentials);
@@ -39,7 +44,7 @@ namespace DataStax.Driver.Benchmarks
         public async Task Insert(UserCredentials credentials)
         {
             credentials.UserId = Guid.NewGuid();
-            await ExecuteMultiple("prepared-insert-user_credentials", _insertPs, credentials.Email, credentials.Password, credentials.UserId);
+            await Execute("prepared-insert-user_credentials", _insertPs, credentials.Email, credentials.Password, credentials.UserId);
         }
 
         internal async Task<UserCredentials> GetCredentials(string email)
@@ -58,19 +63,34 @@ namespace DataStax.Driver.Benchmarks
             };
         }
 
+        private async Task<RowSet> Execute(string key, PreparedStatement ps, params object[] values)
+        {
+            if (_globallyLimited)
+            {
+                return await ExecuteMultipleGlobal(key, ps, values);
+            }
+            return await ExecuteMultiple(key, ps, values);
+        }
+
+        /// <summary>
+        /// Executes n (_maxInFlight) statements in parallel, a total of m (_repeatLength) times.
+        /// </summary>
         private async Task<RowSet> ExecuteMultiple(string key, PreparedStatement ps, params object[] values)
         {
             var statement = ps.Bind(values);
-            var maxInFlight = _semaphore.CurrentCount;
             var counter = new SendReceiveCounter();
             var tcs = new TaskCompletionSource<RowSet>();
-            for (var i = 0; i < maxInFlight; i++)
+            for (var i = 0; i < _maxInFlight; i++)
             {
                 SendNew(key, statement, tcs, counter);
             }
             return await tcs.Task;
         }
 
+        /// <summary>
+        /// Executes a new statement.
+        /// Each time a Statement finished executing, starts a new one until received == repeatLength.
+        /// </summary>
         private void SendNew(string key, IStatement statement, TaskCompletionSource<RowSet> tcs, SendReceiveCounter counter)
         {
             if (counter.IncrementSent() > _repeatLength)
@@ -98,6 +118,42 @@ namespace DataStax.Driver.Benchmarks
                 }
                 SendNew(key, statement, tcs, counter);
             }, TaskContinuationOptions.ExecuteSynchronously);
+        }
+
+        /// <summary>
+        /// Executes m (_repeatLength) statements in parallel, globally limited by the semaphore
+        /// </summary>
+        private async Task<RowSet> ExecuteMultipleGlobal(string key, PreparedStatement ps, params object[] values)
+        {
+            var statement = ps.Bind(values);
+            var counter = new SendReceiveCounter();
+            var tcs = new TaskCompletionSource<RowSet>();
+            for (var i = 0; i < _repeatLength; i++)
+            {
+                await _semaphore.WaitAsync();
+                var stopWatch = new Stopwatch();
+                stopWatch.Start();
+                //var t1 = Task.Run(async () => await _session.ExecuteAsync(statement));
+                var t1 = _session.ExecuteAsync(statement);
+                t1.ContinueWith(t =>
+                {
+                    stopWatch.Stop();
+                    _semaphore.Release();
+                    if (t.Exception != null)
+                    {
+                        tcs.TrySetException(t.Exception.InnerException);
+                        return;
+                    }
+                    _metrics.Update(key, stopWatch.ElapsedMilliseconds);
+                    var received = counter.IncrementReceived();
+                    if (received == _repeatLength)
+                    {
+                        //Mark this as finished
+                        tcs.TrySetResult(t.Result);
+                    }
+                }, TaskContinuationOptions.ExecuteSynchronously);
+            }
+            return await tcs.Task;
         }
 
         public async Task<TimeUuid> Now()
