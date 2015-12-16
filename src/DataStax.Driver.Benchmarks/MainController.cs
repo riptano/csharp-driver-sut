@@ -42,11 +42,6 @@ namespace DataStax.Driver.Benchmarks
             return resp;
         }
 
-        public IHttpActionResult JsonTest(UserCredentials credentials)
-        {
-            return Ok(credentials);
-        }
-
         public async Task<IHttpActionResult> InsertCredentials(UserCredentials credentials)
         {
             await _repository.Insert(credentials);
@@ -57,6 +52,30 @@ namespace DataStax.Driver.Benchmarks
         {
             var credentials = await _repository.GetCredentials(email);
             return Json(credentials);
+        }
+
+        public async Task<IHttpActionResult> InsertVideo(Video video)
+        {
+            await _repository.Insert(video);
+            return Ok(video);
+        }
+
+        public async Task<IHttpActionResult> GetVideo(Guid videoId)
+        {
+            var video = await _repository.GetVideo(videoId);
+            return Json(video);
+        }
+
+        public async Task<IHttpActionResult> InsertVideoEvent(VideoEvent videoEvent)
+        {
+            await _repository.Insert(videoEvent);
+            return Ok(videoEvent);
+        }
+
+        public async Task<IHttpActionResult> GetVideoEvent(Guid videoId, Guid userId)
+        {
+            var video = await _repository.GetVideoEvent(videoId, userId);
+            return Json(video);
         }
     }
 }

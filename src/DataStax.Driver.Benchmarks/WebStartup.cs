@@ -20,26 +20,44 @@ namespace DataStax.Driver.Benchmarks
             var config = new HttpConfiguration();
             config.Routes.MapHttpRoute("Home", "", new { controller = "Main", action = "Index" });
             config.Routes.MapHttpRoute("Now", "cassandra", new { controller = "Main", action = "Now" });
-            config.Routes.MapHttpRoute("JsonTest", "json-test", new
+            config.Routes.MapHttpRoute("set-credentials-prepared", "prepared-statements/credentials", new
             {
-                controller = "Main",
-                action = "JsonTest"
+                controller = "Main", action = "InsertCredentials"
             }, new
             {
                 httpMethod = new HttpMethodConstraint(HttpMethod.Post)
             });
-            config.Routes.MapHttpRoute("Insert-Prepared", "prepared-statements/credentials", new
+            config.Routes.MapHttpRoute("get-credentials-prepared", "prepared-statements/credentials/{email}", new
             {
-                controller = "Main",
-                action = "InsertCredentials"
+                controller = "Main", action = "GetCredentials"
+            }, new
+            {
+                httpMethod = new HttpMethodConstraint(HttpMethod.Get)
+            });
+            config.Routes.MapHttpRoute("set-videos-prepared", "prepared-statements/videos", new
+            {
+                controller = "Main", action = "InsertVideo"
             }, new
             {
                 httpMethod = new HttpMethodConstraint(HttpMethod.Post)
             });
-            config.Routes.MapHttpRoute("Get-Prepared", "prepared-statements/credentials/{email}", new
+            config.Routes.MapHttpRoute("get-videos-prepared", "prepared-statements/videos/{videoId}", new
             {
-                controller = "Main",
-                action = "GetCredentials"
+                controller = "Main", action = "GetVideo"
+            }, new
+            {
+                httpMethod = new HttpMethodConstraint(HttpMethod.Get)
+            });
+            config.Routes.MapHttpRoute("set-video-events-prepared", "prepared-statements/video-events", new
+            {
+                controller = "Main", action = "InsertVideoEvent"
+            }, new
+            {
+                httpMethod = new HttpMethodConstraint(HttpMethod.Post)
+            });
+            config.Routes.MapHttpRoute("get-video-events-prepared", "prepared-statements/video-events/{videoId}/{userId}", new
+            {
+                controller = "Main", action = "GetVideoEvent"
             }, new
             {
                 httpMethod = new HttpMethodConstraint(HttpMethod.Get)
