@@ -17,7 +17,7 @@ namespace DataStax.Driver.Benchmarks
         public char UseHttp { get; set; }
         [Option('p', HelpText = "Amount of connections per host", Default = 1)]
         public int ConnectionsPerHost { get; set; }
-        [Option('o', HelpText = "Maximum outstanding requests per host", Default = 2048)]
+        [Option('o', HelpText = "Maximum outstanding requests per host", Default = 1024)]
         public int MaxOutstandingRequests { get; set; }
         [Option('r', HelpText = "Amount of CQL requests per call (http request or script)", Default = 10000)]
         public int CqlRequests { get; set; }
