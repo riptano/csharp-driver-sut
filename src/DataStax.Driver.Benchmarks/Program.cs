@@ -79,9 +79,9 @@ namespace DataStax.Driver.Benchmarks
                 }
                 var averageMs = elapsed.Average();
                 Console.WriteLine("Insert Throughput:\n\tAverage {0:0} ops/s (elapsed {1:0}) - Median {2} ops/s", 
-                    1000 * statementLength / averageMs, 
+                    1000D * statementLength / averageMs, 
                     averageMs, 
-                    1000 * statementLength / elapsed.OrderBy(x => x).Skip(2).First());
+                    1000D * statementLength / elapsed.OrderBy(x => x).Skip(2).First());
             }).Wait();
             GC.Collect();
             Task.Run(async () =>
@@ -97,9 +97,9 @@ namespace DataStax.Driver.Benchmarks
                 }
                 var averageMs = elapsed.Average();
                 Console.WriteLine("Select Throughput:\n\tAverage {0:0} ops/s (elapsed {1:0}) - Median {2} ops/s",
-                    1000 * statementLength / averageMs,
+                    1000D * statementLength / averageMs,
                     averageMs,
-                    1000 * statementLength / elapsed.OrderBy(x => x).Skip(2).First());
+                    1000D * statementLength / elapsed.OrderBy(x => x).Skip(2).First());
             }).Wait();
         }
     }
