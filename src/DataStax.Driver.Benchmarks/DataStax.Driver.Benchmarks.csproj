@@ -87,9 +87,14 @@
     <Compile Include="Models\Video.cs" />
     <Compile Include="Models\VideoEvent.cs" />
     <Compile Include="Options.cs" />
+    <Compile Include="Profiles\BaseProfile.cs" />
+    <Compile Include="Profiles\IProfile.cs" />
+    <Compile Include="Profiles\MinimalProfile.cs" />
+    <Compile Include="Profiles\StandardProfile.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Repository.cs" />
+    <Compile Include="Utils.cs" />
     <Compile Include="WebStartup.cs" />
   </ItemGroup>
   <ItemGroup>

@@ -9,12 +9,16 @@ using System.Threading.Tasks;
 using Cassandra;
 using CommandLine;
 using DataStax.Driver.Benchmarks.Models;
+using DataStax.Driver.Benchmarks.Profiles;
 using Microsoft.Owin.Hosting;
 
 namespace DataStax.Driver.Benchmarks
 {
     public class Program
     {
+        private static readonly CountRetryPolicy RetryPolicy = new CountRetryPolicy();
+       
+
         static void Main(string[] args)
         {
             var result = Parser.Default.ParseArguments<Options>(args);
@@ -23,7 +27,7 @@ namespace DataStax.Driver.Benchmarks
             {
                 return;
             }
-            Diagnostics.CassandraTraceSwitch.Level = TraceLevel.Info;
+            Diagnostics.CassandraTraceSwitch.Level = options.Debug ? TraceLevel.Info : TraceLevel.Warning;
             Trace.Listeners.Add(new ConsoleTraceListener());
             var driverVersion = Version.Parse(FileVersionInfo.GetVersionInfo(
                 Assembly.GetAssembly(typeof (ISession)).Location).FileVersion);
@@ -31,7 +35,7 @@ namespace DataStax.Driver.Benchmarks
             var cluster = Cluster.Builder()
                 .AddContactPoint(options.ContactPoint)
                 .WithSocketOptions(new SocketOptions().SetTcpNoDelay(true).SetReadTimeoutMillis(0))
-                .WithLoadBalancingPolicy(new RoundRobinPolicy())
+                .WithRetryPolicy(RetryPolicy)
                 .WithPoolingOptions(new PoolingOptions()
                     .SetCoreConnectionsPerHost(HostDistance.Local, options.ConnectionsPerHost)
                     .SetMaxConnectionsPerHost(HostDistance.Local, options.ConnectionsPerHost)
@@ -43,8 +47,6 @@ namespace DataStax.Driver.Benchmarks
             {
                 Console.WriteLine("Using single script");
                 SingleScript(session, options);
-                Console.WriteLine("Finished, press any key to continue...");
-                Console.Read();
                 return;
             }
             Console.WriteLine("Starting benchmarks web server...");
@@ -62,45 +64,109 @@ namespace DataStax.Driver.Benchmarks
 
         private static void SingleScript(ISession session, Options options)
         {
-            var metrics = new EmptyMetricsTracker();
-            //single instance of repository
-            var repository = new Repository(session, metrics, false, options);
-            var statementLength = options.CqlRequests;
             Task.Run(async () =>
             {
-                var elapsed = new List<long>();
-                for (var i = 0; i < 5; i++)
-                {
-                    var stopWatch = new Stopwatch();
-                    stopWatch.Start();
-                    await repository.Insert(new UserCredentials {Email = "a", Password = "b", UserId = Guid.NewGuid()});
-                    stopWatch.Stop();
-                    elapsed.Add(stopWatch.ElapsedMilliseconds);
-                }
-                var averageMs = elapsed.Average();
-                Console.WriteLine("Insert Throughput:\n\tAverage {0:0} ops/s (elapsed {1:0}) - Median {2:0} ops/s", 
-                    1000D * statementLength / averageMs, 
-                    averageMs, 
-                    1000D * statementLength / elapsed.OrderBy(x => x).Skip(2).First());
+                await RunSingleScriptAsync(session, options);
             }).Wait();
+        }
+
+        private static async Task RunSingleScriptAsync(ISession session, Options options)
+        {
+            IProfile profile;
+            if (options.Profile == "minimal")
+            {
+                profile = new MinimalProfile();
+            }
+            else
+            {
+                profile = new StandardProfile();
+            }
+            Console.WriteLine("Using \"{0}\" profile", profile.GetType().GetTypeInfo().Name);
+            await profile.Init(session, options);
+            if (options.Debug)
+            {
+                Console.WriteLine("Starting Insert");
+            }
+            var elapsedInsert = await WorkloadTask(profile.Insert, options);
+            if (options.Debug)
+            {
+                Console.WriteLine("Starting Select");
+            }
+            var elapsedSelect = await WorkloadTask(profile.Select, options);
+            // Show results
+            Console.WriteLine("Errors: {0} read timeouts, {1} write timeouts and {2} unavailable exceptions", 
+                RetryPolicy.GetReadCount(), RetryPolicy.GetWriteCount(), RetryPolicy.GetUnavailableCount());
+            Console.WriteLine("Throughput:");
+            Console.WriteLine(
+                "|      Insert      |       Select    |\n" +
+                "|------------------|-----------------|\n" +
+                "|      {0:000000}      |       {1:000000}    |", 
+                1000D * options.CqlRequests / elapsedInsert.Average(),
+                1000D * options.CqlRequests / elapsedSelect.Average());
+        }
+
+        private static async Task<List<long>> WorkloadTask(Func<Task> workload, Options options)
+        {
+            var elapsed = new List<long>();
+            for (var i = 0; i < 5; i++)
+            {
+                var stopWatch = new Stopwatch();
+                stopWatch.Start();
+                await workload();
+                stopWatch.Stop();
+                elapsed.Add(stopWatch.ElapsedMilliseconds);
+                if (options.Debug)
+                {
+                    Console.WriteLine("Throughput:\t{0:0} ops/s (elapsed {1:0})",
+                        1000D * options.CqlRequests / stopWatch.ElapsedMilliseconds,
+                        stopWatch.ElapsedMilliseconds);
+                }
+            }
+
             GC.Collect();
-            Task.Run(async () =>
+            return elapsed;
+        }
+
+        public class CountRetryPolicy : IRetryPolicy
+        {
+            private long _countRead;
+            private long _countWrite;
+            private long _countUnavailable;
+
+            public long GetReadCount()
             {
-                var elapsed = new List<long>();
-                for (var i = 0; i < 5; i++)
-                {
-                    var stopWatch = new Stopwatch();
-                    stopWatch.Start();
-                    await repository.GetCredentials("a");
-                    stopWatch.Stop();
-                    elapsed.Add(stopWatch.ElapsedMilliseconds);
-                }
-                var averageMs = elapsed.Average();
-                Console.WriteLine("Select Throughput:\n\tAverage {0:0} ops/s (elapsed {1:0}) - Median {2:0} ops/s",
-                    1000D * statementLength / averageMs,
-                    averageMs,
-                    1000D * statementLength / elapsed.OrderBy(x => x).Skip(2).First());
-            }).Wait();
+                return Interlocked.Exchange(ref _countRead, 0L);
+            }
+
+            public long GetWriteCount()
+            {
+                return Interlocked.Exchange(ref _countWrite, 0L);
+            }
+
+            public long GetUnavailableCount()
+            {
+                return Interlocked.Exchange(ref _countUnavailable, 0L);
+            }
+
+            public RetryDecision OnReadTimeout(IStatement query, ConsistencyLevel cl, int requiredResponses, int receivedResponses,
+                bool dataRetrieved, int nbRetry)
+            {
+                Interlocked.Increment(ref _countRead);
+                return RetryDecision.Ignore();
+            }
+
+            public RetryDecision OnWriteTimeout(IStatement query, ConsistencyLevel cl, string writeType, int requiredAcks, int receivedAcks,
+                int nbRetry)
+            {
+                Interlocked.Increment(ref _countWrite);
+                return RetryDecision.Ignore();
+            }
+
+            public RetryDecision OnUnavailable(IStatement query, ConsistencyLevel cl, int requiredReplica, int aliveReplica, int nbRetry)
+            {
+                Interlocked.Increment(ref _countUnavailable);
+                return RetryDecision.Ignore();
+            }
         }
     }
 }

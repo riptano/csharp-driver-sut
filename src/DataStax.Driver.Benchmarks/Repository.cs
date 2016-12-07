@@ -150,7 +150,7 @@ namespace DataStax.Driver.Benchmarks
         private async Task<RowSet> ExecuteMultiple(string key, PreparedStatement ps, params object[] values)
         {
             var statement = ps.Bind(values);
-            var counter = new SendReceiveCounter();
+            var counter = new Utils.SendReceiveCounter();
             var tcs = new TaskCompletionSource<RowSet>();
             for (var i = 0; i < _maxInFlight; i++)
             {
@@ -163,7 +163,7 @@ namespace DataStax.Driver.Benchmarks
         /// Executes a new statement.
         /// Each time a Statement finished executing, starts a new one until received == repeatLength.
         /// </summary>
-        private void SendNew(string key, IStatement statement, TaskCompletionSource<RowSet> tcs, SendReceiveCounter counter)
+        private void SendNew(string key, IStatement statement, TaskCompletionSource<RowSet> tcs, Utils.SendReceiveCounter counter)
         {
             if (counter.IncrementSent() > _repeatLength)
             {
@@ -198,7 +198,7 @@ namespace DataStax.Driver.Benchmarks
         private async Task<RowSet> ExecuteMultipleGlobal(string key, PreparedStatement ps, params object[] values)
         {
             var statement = ps.Bind(values);
-            var counter = new SendReceiveCounter();
+            var counter = new Utils.SendReceiveCounter();
             var tcs = new TaskCompletionSource<RowSet>();
             for (var i = 0; i < _repeatLength; i++)
             {
@@ -232,22 +232,6 @@ namespace DataStax.Driver.Benchmarks
         {
             var rs = await _session.ExecuteAsync(new SimpleStatement("SELECT NOW() FROM system.local"));
             return rs.First().GetValue<TimeUuid>(0);
-        }
-
-        private class SendReceiveCounter
-        {
-            private int _receiveCounter;
-            private int _sendCounter;
-
-            public int IncrementSent()
-            {
-                return Interlocked.Increment(ref _sendCounter);
-            }
-
-            public int IncrementReceived()
-            {
-                return Interlocked.Increment(ref _receiveCounter);
-            }
         }
     }
 }
