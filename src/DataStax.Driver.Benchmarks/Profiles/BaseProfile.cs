@@ -20,7 +20,7 @@ namespace DataStax.Driver.Benchmarks.Profiles
         protected PreparedStatement InsertPs;
         protected PreparedStatement SelectPs;
 
-        public async Task Init(ISession session, Options options)
+        public virtual async Task Init(ISession session, Options options)
         {
             Session = session;
             _options = options;
@@ -28,8 +28,14 @@ namespace DataStax.Driver.Benchmarks.Profiles
             {
                 await session.ExecuteAsync(new SimpleStatement(q));
             }
-            InsertPs = await session.PrepareAsync(InsertQuery);
-            SelectPs = await session.PrepareAsync(SelectQuery);
+            if (InsertQuery != null)
+            {
+                InsertPs = await session.PrepareAsync(InsertQuery);
+            }
+            if (SelectQuery != null)
+            {
+                SelectPs = await session.PrepareAsync(SelectQuery);
+            }
             // Warmup
             await InsertMultiple(20000);
             await SelectMultiple(20000);
