@@ -72,15 +72,7 @@ namespace DataStax.Driver.Benchmarks
 
         private static async Task RunSingleScriptAsync(ISession session, Options options)
         {
-            IProfile profile;
-            if (options.Profile == "minimal")
-            {
-                profile = new MinimalProfile();
-            }
-            else
-            {
-                profile = new StandardProfile();
-            }
+            IProfile profile = GetProfile(options.Profile);
             Console.WriteLine("Using \"{0}\" profile", profile.GetType().GetTypeInfo().Name);
             await profile.Init(session, options);
             if (options.Debug)
@@ -103,6 +95,21 @@ namespace DataStax.Driver.Benchmarks
                 "|      {0:000000}      |       {1:000000}    |", 
                 1000D * options.CqlRequests / elapsedInsert.Average(),
                 1000D * options.CqlRequests / elapsedSelect.Average());
+        }
+
+        private static IProfile GetProfile(string profileName)
+        {
+            // In the future we can create the type instance by name
+            // for now, its good enough
+            switch (profileName)
+            {
+                case "minimal":
+                    return new MinimalProfile();
+                case "mapper":
+                    return new MapperStandardProfile();
+                default:
+                    return new StandardProfile();
+            }
         }
 
         private static async Task<List<long>> WorkloadTask(Func<Task> workload, Options options)
