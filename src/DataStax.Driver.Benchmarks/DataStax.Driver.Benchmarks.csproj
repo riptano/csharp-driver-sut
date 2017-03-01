@@ -83,12 +83,14 @@
   <ItemGroup>
     <Compile Include="MainController.cs" />
     <Compile Include="MetricsTracker.cs" />
+    <Compile Include="Models\StandardPoco.cs" />
     <Compile Include="Models\UserCredentials.cs" />
     <Compile Include="Models\Video.cs" />
     <Compile Include="Models\VideoEvent.cs" />
     <Compile Include="Options.cs" />
     <Compile Include="Profiles\BaseProfile.cs" />
     <Compile Include="Profiles\IProfile.cs" />
+    <Compile Include="Profiles\LinqStandardProfile.cs" />
     <Compile Include="Profiles\MapperStandardProfile.cs" />
     <Compile Include="Profiles\MinimalProfile.cs" />
     <Compile Include="Profiles\StandardProfile.cs" />
