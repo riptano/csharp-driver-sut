@@ -29,5 +29,7 @@ obj/
 [Rr]elease*/
 _ReSharper*/
 [Tt]est[Rr]esult*
+src/packages/
+src/*.vs/
 src/*/packages/*/
 csharp-driver/

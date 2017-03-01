@@ -33,7 +33,7 @@ namespace DataStax.Driver.Benchmarks
         [Option('d', HelpText = "Debug", Default = false)]
         public bool Debug { get; set; }
 
-        [Option('w', HelpText = "The workload profile (standard|minimal|mapper)", Default = "standard")]
+        [Option('w', HelpText = "The workload profile (standard|minimal|mapper|linq)", Default = "standard")]
         public string Profile { get; set; }
     }
 }

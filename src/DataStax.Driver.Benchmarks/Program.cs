@@ -18,7 +18,6 @@ namespace DataStax.Driver.Benchmarks
     {
         private static readonly CountRetryPolicy RetryPolicy = new CountRetryPolicy();
        
-
         static void Main(string[] args)
         {
             var result = Parser.Default.ParseArguments<Options>(args);
@@ -107,6 +106,8 @@ namespace DataStax.Driver.Benchmarks
                     return new MinimalProfile();
                 case "mapper":
                     return new MapperStandardProfile();
+                case "linq":
+                    return new LinqStandardProfile();
                 default:
                     return new StandardProfile();
             }
