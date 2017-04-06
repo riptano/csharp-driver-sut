@@ -27,6 +27,9 @@ namespace DataStax.Driver.Benchmarks
         [Option('r', HelpText = "Amount of CQL requests per call (http request or script)", Default = 10000)]
         public int CqlRequests { get; set; }
 
+        [Option('t', HelpText = "Number of times to run the workload", Default = 1)]
+        public int Times { get; set; }
+
         [Option('m', HelpText = "Metrics endpoint", Default = "127.0.0.1:2003")]
         public string MetricsEndpoint { get; set; }
 
