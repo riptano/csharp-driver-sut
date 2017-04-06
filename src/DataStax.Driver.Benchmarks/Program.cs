@@ -72,29 +72,32 @@ namespace DataStax.Driver.Benchmarks
 
         private static async Task RunSingleScriptAsync(ISession session, Options options)
         {
-            IProfile profile = GetProfile(options.Profile);
-            Console.WriteLine("Using \"{0}\" profile", profile.GetType().GetTypeInfo().Name);
-            await profile.Init(session, options);
-            if (options.Debug)
+            for (var i = 0; i < options.Times; i++)
             {
-                Console.WriteLine("Starting Insert");
+                IProfile profile = GetProfile(options.Profile);
+                Console.WriteLine("Using \"{0}\" profile", profile.GetType().GetTypeInfo().Name);
+                await profile.Init(session, options);
+                if (options.Debug)
+                {
+                    Console.WriteLine("Starting Insert");
+                }
+                var elapsedInsert = await WorkloadTask(profile.Insert, options);
+                if (options.Debug)
+                {
+                    Console.WriteLine("Starting Select");
+                }
+                var elapsedSelect = await WorkloadTask(profile.Select, options);
+                // Show results
+                Console.WriteLine("Errors: {0} read timeouts, {1} write timeouts and {2} unavailable exceptions",
+                    RetryPolicy.GetReadCount(), RetryPolicy.GetWriteCount(), RetryPolicy.GetUnavailableCount());
+                Console.WriteLine("Throughput:");
+                Console.WriteLine(
+                    "|      Insert      |       Select    |\n" +
+                    "|------------------|-----------------|\n" +
+                    "|      {0:000000}      |       {1:000000}    |",
+                    1000D * options.CqlRequests / elapsedInsert.Average(),
+                    1000D * options.CqlRequests / elapsedSelect.Average());
             }
-            var elapsedInsert = await WorkloadTask(profile.Insert, options);
-            if (options.Debug)
-            {
-                Console.WriteLine("Starting Select");
-            }
-            var elapsedSelect = await WorkloadTask(profile.Select, options);
-            // Show results
-            Console.WriteLine("Errors: {0} read timeouts, {1} write timeouts and {2} unavailable exceptions", 
-                RetryPolicy.GetReadCount(), RetryPolicy.GetWriteCount(), RetryPolicy.GetUnavailableCount());
-            Console.WriteLine("Throughput:");
-            Console.WriteLine(
-                "|      Insert      |       Select    |\n" +
-                "|------------------|-----------------|\n" +
-                "|      {0:000000}      |       {1:000000}    |", 
-                1000D * options.CqlRequests / elapsedInsert.Average(),
-                1000D * options.CqlRequests / elapsedSelect.Average());
         }
 
         private static IProfile GetProfile(string profileName)
