@@ -8,10 +8,8 @@ using Cassandra.Mapping;
 
 namespace DataStax.Driver.Benchmarks.Profiles
 {
-    public class MapperStandardProfile : BaseProfile
+    public abstract class MapperStandardProfile : BaseProfile
     {
-        private IMapper _mapper;
-
         protected override string SelectQuery
         {
             get
@@ -40,37 +38,7 @@ namespace DataStax.Driver.Benchmarks.Profiles
             }
         }
 
-        public override Task Init(ISession session, Options options)
-        {
-            MappingConfiguration.Global.Define(new Map<StandardPoco>()
-                .PartitionKey(p => p.Key)
-                .KeyspaceName("test_csharp_benchmarks_standard_mapper")
-                .TableName("standard1"));
-            _mapper = new Mapper(session);
-            return base.Init(session, options);
-        }
-
-        protected override Task ExecuteInsertAsync(long index)
-        {
-            var value = BitConverter.GetBytes(index);
-            return _mapper.InsertAsync(new StandardPoco
-            {
-                Key = value,
-                C0 = value,
-                C1 = value,
-                C2 = value,
-                C3 = value,
-                C4 = value
-            });
-        }
-
-        protected override Task ExecuteSelectAsync(long index)
-        {
-            var value = BitConverter.GetBytes(index);
-            return _mapper.FetchAsync<StandardPoco>(SelectQuery, value);
-        }
-
-        private class StandardPoco
+        protected class StandardPoco
         {
             public byte[] Key { get; set; }
 

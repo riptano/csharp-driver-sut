@@ -81,13 +81,26 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="BaseTestScript.cs" />
+    <Compile Include="CassandraTestScript.cs" />
+    <Compile Include="CountRetryPolicy.cs" />
+    <Compile Include="DseTestScript.cs" />
     <Compile Include="MainController.cs" />
     <Compile Include="MetricsTracker.cs" />
+    <Compile Include="Metrics\Metric.cs" />
+    <Compile Include="Metrics\Timer.cs" />
     <Compile Include="Models\UserCredentials.cs" />
     <Compile Include="Models\Video.cs" />
     <Compile Include="Models\VideoEvent.cs" />
     <Compile Include="Options.cs" />
     <Compile Include="Profiles\BaseProfile.cs" />
+    <Compile Include="Profiles\CassandraUtils.cs" />
+    <Compile Include="Profiles\DseMapperProfile.cs" />
+    <Compile Include="Profiles\CassandraMapperProfile.cs" />
+    <Compile Include="Profiles\DseMinimalProfile.cs" />
+    <Compile Include="Profiles\CassandraMinimalProfile.cs" />
+    <Compile Include="Profiles\CassandraStandardProfile.cs" />
+    <Compile Include="Profiles\DseStandardProfile.cs" />
     <Compile Include="Profiles\IProfile.cs" />
     <Compile Include="Profiles\MapperStandardProfile.cs" />
     <Compile Include="Profiles\MinimalProfile.cs" />
@@ -95,6 +108,7 @@
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Repository.cs" />
+    <Compile Include="ITestScript.cs" />
     <Compile Include="Utils.cs" />
     <Compile Include="WebStartup.cs" />
   </ItemGroup>
@@ -106,6 +120,10 @@
     <ProjectReference Include="..\..\csharp-driver\src\Cassandra\Cassandra.csproj">
       <Project>{6e8c45da-d958-4c75-98c3-b54c883299a2}</Project>
       <Name>Cassandra</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\..\csharp-dse-driver\src\Dse\Dse.csproj">
+      <Project>{b93414cc-b6e1-4e5d-ba18-8171e30b4cfb}</Project>
+      <Name>Dse</Name>
     </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />

@@ -1,72 +1,112 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using Cassandra;
+using DataStax.Driver.Benchmarks.Metrics;
 
 namespace DataStax.Driver.Benchmarks.Profiles
 {
     public abstract class BaseProfile : IProfile
     {
+        protected Timer InsertTimer = new Timer();
+        protected Timer SelectTimer = new Timer();
+
         protected abstract string SelectQuery { get; }
 
         protected abstract string InsertQuery { get; }
 
         protected abstract IEnumerable<string> InitQueries { get; }
 
-        protected ISession Session;
         private Options _options;
-        protected PreparedStatement InsertPs;
-        protected PreparedStatement SelectPs;
 
-        public virtual async Task Init(ISession session, Options options)
+        public virtual void Init(Options options)
         {
-            Session = session;
             _options = options;
             foreach (var q in InitQueries)
             {
-                await session.ExecuteAsync(new SimpleStatement(q));
+                Task.Run(async () =>
+                {
+                    //await profile.Init(Options);
+                    await ExecuteAsync(q);
+                }).Wait();
             }
-            if (InsertQuery != null)
-            {
-                InsertPs = await session.PrepareAsync(InsertQuery);
-            }
-            if (SelectQuery != null)
-            {
-                SelectPs = await session.PrepareAsync(SelectQuery);
-            }
+            PrepareStatements();
             // Warmup
-            await InsertMultiple(20000);
-            await SelectMultiple(20000);
+            Task.Run(async () =>
+            {
+                //await profile.Init(Options);
+                await InsertMultiple(200);
+                await SelectMultiple(200);
+            }).Wait();
         }
+        protected abstract void PrepareStatements();
 
-        public async Task Insert()
+        protected abstract Task ExecuteAsync(string query);
+        protected abstract Task PrepareAsync(string query);
+
+        public async Task<Timer> Insert()
         {
             await InsertMultiple();
+            return InsertTimer;
         }
 
-        public async Task Select()
+        public async Task<Timer> Select()
         {
             await SelectMultiple();
+            return SelectTimer;
         }
 
         private async Task InsertMultiple(long repeatLength = 0L)
         {
+            InsertTimer = new Timer();
             if (repeatLength == 0)
             {
                 repeatLength = _options.CqlRequests;
             }
-            await Utils.Times(repeatLength, _options.MaxOutstandingRequests, ExecuteInsertAsync);
+            await Utils.Times(repeatLength, _options.MaxOutstandingRequests, ExecuteInsertCqlAsync);
         }
 
         private async Task SelectMultiple(long repeatLength = 0L)
         {
+            SelectTimer = new Timer();
             if (repeatLength == 0)
             {
                 repeatLength = _options.CqlRequests;
             }
-            await Utils.Times(repeatLength, _options.MaxOutstandingRequests, ExecuteSelectAsync);
+            await Utils.Times(repeatLength, _options.MaxOutstandingRequests, ExecuteSelectCqlAsync);
+        }
+
+        protected Task ExecuteInsertCqlAsync(long index)
+        {
+            return ExecuteInsertAsync(index);
+            //return Task.Run(() =>
+            //{
+            //    var record = new Timer.TimeLogRecorder(InsertTimer);
+            //    ExecuteInsertAsync(index);
+            //    return record;
+            //})
+            //.ContinueWith((antecedent) =>
+            //    {
+            //        antecedent.Result.StopRecording();
+            //    }, TaskContinuationOptions.ExecuteSynchronously);
+        }
+
+        protected Task ExecuteSelectCqlAsync(long index)
+        {
+            return ExecuteSelectAsync(index);
+            //return Task.Run(() =>
+            //{
+            //    var record = new Timer.TimeLogRecorder(SelectTimer);
+            //    ExecuteSelectAsync(index);
+            //    return record;
+            //})
+            //.ContinueWith((antecedent) =>
+            //{
+            //    antecedent.Result.StopRecording();
+            //}, TaskContinuationOptions.ExecuteSynchronously);
         }
 
         protected abstract Task ExecuteInsertAsync(long index);

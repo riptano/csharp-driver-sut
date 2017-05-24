@@ -7,7 +7,7 @@ using Cassandra;
 
 namespace DataStax.Driver.Benchmarks.Profiles
 {
-    public class StandardProfile : BaseProfile
+    public abstract class StandardProfile : BaseProfile
     {
         protected override string SelectQuery
         {
@@ -42,18 +42,6 @@ namespace DataStax.Driver.Benchmarks.Profiles
                     "(key blob PRIMARY KEY,c0 blob,c1 blob,c2 blob,c3 blob,c4 blob)"
                 };
             }
-        }
-
-        protected override Task ExecuteInsertAsync(long index)
-        {
-            var val = BitConverter.GetBytes(index);
-            return Session.ExecuteAsync(InsertPs.Bind(val, val, val, val, val, val));
-        }
-
-        protected override Task ExecuteSelectAsync(long index)
-        {
-            var val = BitConverter.GetBytes(index);
-            return Session.ExecuteAsync(SelectPs.Bind(val));
         }
     }
 }

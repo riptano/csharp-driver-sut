@@ -6,10 +6,10 @@ using System.Threading.Tasks;
 
 namespace DataStax.Driver.Benchmarks.Profiles
 {
-    public class MinimalProfile : BaseProfile
+    public abstract class MinimalProfile : BaseProfile
     {
-        private static readonly byte[] Value = new byte[] { 0x0F };
-        private static readonly DateTimeOffset Timestamp = DateTimeOffset.Now;
+        protected static readonly byte[] Value = new byte[] { 0x0F };
+        protected static readonly DateTimeOffset Timestamp = DateTimeOffset.Now;
 
         protected override string SelectQuery
         {
@@ -25,7 +25,7 @@ namespace DataStax.Driver.Benchmarks.Profiles
         {
             get
             {
-                var replicationFactor = Session.Cluster.AllHosts().Count > 3 ? 3 : Session.Cluster.AllHosts().Count;
+                var replicationFactor = GetReplicationFactor();
                 return new string[]
                 {
                     "DROP KEYSPACE IF EXISTS test_csharp_benchmarks_minimal",
@@ -39,14 +39,6 @@ namespace DataStax.Driver.Benchmarks.Profiles
             }
         }
 
-        protected override Task ExecuteInsertAsync(long index)
-        {
-            return Session.ExecuteAsync(InsertPs.Bind(Value).SetTimestamp(Timestamp));
-        }
-
-        protected override Task ExecuteSelectAsync(long index)
-        {
-            return Session.ExecuteAsync(SelectPs.Bind(Value).SetTimestamp(Timestamp));
-        }
+        protected abstract int GetReplicationFactor();
     }
 }
