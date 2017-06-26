@@ -8,6 +8,6 @@ namespace DataStax.Driver.Benchmarks
 {
     interface ITestScript
     {
-        void Run(Options options);
+        Task Run(Options options);
     }
 }

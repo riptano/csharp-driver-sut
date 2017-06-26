@@ -24,7 +24,7 @@ namespace DataStax.Driver.Benchmarks
                 return;
             }
             var testScript = CreateTestScript(options);
-            testScript.Run(options);
+            testScript.Run(options).Wait();
         }
 
         private static ITestScript CreateTestScript(Options options)

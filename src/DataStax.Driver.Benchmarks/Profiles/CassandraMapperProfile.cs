@@ -16,13 +16,15 @@ namespace DataStax.Driver.Benchmarks.Profiles
         {
             this.Session = session;
         }
-        public override void Init(Options options)
+        public override async Task Init(Options options)
         {
             MappingConfiguration.Global.Define(new Map<StandardPoco>()
                 .PartitionKey(p => p.Key)
                 .KeyspaceName("test_csharp_benchmarks_standard_mapper")
                 .TableName("standard1"));
+
             _mapper = new Mapper(Session);
+            await base.Init(options);
         }
 
         protected override void PrepareStatements()

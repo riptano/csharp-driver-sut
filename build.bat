@@ -4,23 +4,23 @@ set driver=%1
 set branch=%2
 echo.Driver: %driver%
 echo.Branch/Tag: %branch%
+if not exist csharp-dse-driver git clone https://github.com/riptano/csharp-dse-driver.git
+if not exist csharp-driver git clone https://github.com/datastax/csharp-driver.git
 if "%driver%"=="dse" (
-	if not exist csharp-dse-driver git clone https://github.com/riptano/csharp-dse-driver.git
 	cd csharp-dse-driver
-	git fetch origin
+	git fetch origin %branch%
 	git reset --hard %branch%
+	msbuild /v:q /nologo /property:Configuration=Release src\Dse.sln
 )
 git fetch origin
 if "%driver%"=="cassandra" (
-	if not exist csharp-driver git clone https://github.com/datastax/csharp-driver.git
 	cd csharp-driver
-	git fetch origin
+	git fetch origin %branch%
 	git reset --hard %branch%
+	msbuild /v:q /nologo /property:Configuration=Release src\Cassandra.sln
 )
 cd ..
 rem Required for package restore
-msbuild /v:q /nologo /property:Configuration=Release csharp-driver\src\Cassandra.sln
-msbuild /v:q /nologo /property:Configuration=Release csharp-dse-driver\src\Dse.sln
 msbuild /v:q /nologo /p:Configuration=Release /t:clean src/DataStax.Driver.Benchmarks/DataStax.Driver.Benchmarks.sln
 msbuild /v:q /nologo /p:Configuration=Release src/DataStax.Driver.Benchmarks/DataStax.Driver.Benchmarks.sln
 if %errorlevel% neq 0 exit /b %errorlevel%

@@ -20,27 +20,19 @@ namespace DataStax.Driver.Benchmarks.Profiles
 
         protected abstract IEnumerable<string> InitQueries { get; }
 
-        private Options _options;
+        protected Options Options;
 
-        public virtual void Init(Options options)
+        public virtual async Task Init(Options options)
         {
-            _options = options;
+            Options = options;
             foreach (var q in InitQueries)
             {
-                Task.Run(async () =>
-                {
-                    //await profile.Init(Options);
-                    await ExecuteAsync(q);
-                }).Wait();
+                await ExecuteAsync(q);
             }
             PrepareStatements();
             // Warmup
-            Task.Run(async () =>
-            {
-                //await profile.Init(Options);
-                await InsertMultiple(200);
-                await SelectMultiple(200);
-            }).Wait();
+            await InsertMultiple(20000);
+            await SelectMultiple(20000);
         }
         protected abstract void PrepareStatements();
 
@@ -59,54 +51,34 @@ namespace DataStax.Driver.Benchmarks.Profiles
             return SelectTimer;
         }
 
-        private async Task InsertMultiple(long repeatLength = 0L)
+        protected async Task InsertMultiple(long repeatLength = 0L)
         {
             InsertTimer = new Timer();
             if (repeatLength == 0)
             {
-                repeatLength = _options.CqlRequests;
+                repeatLength = Options.CqlRequests;
             }
-            await Utils.Times(repeatLength, _options.MaxOutstandingRequests, ExecuteInsertCqlAsync);
+            await Utils.Times(repeatLength, Options.MaxOutstandingRequests, ExecuteInsertCqlAsync);
         }
 
-        private async Task SelectMultiple(long repeatLength = 0L)
+        protected async Task SelectMultiple(long repeatLength = 0L)
         {
             SelectTimer = new Timer();
             if (repeatLength == 0)
             {
-                repeatLength = _options.CqlRequests;
+                repeatLength = Options.CqlRequests;
             }
-            await Utils.Times(repeatLength, _options.MaxOutstandingRequests, ExecuteSelectCqlAsync);
+            await Utils.Times(repeatLength, Options.MaxOutstandingRequests, ExecuteSelectCqlAsync);
         }
 
         protected Task ExecuteInsertCqlAsync(long index)
         {
             return ExecuteInsertAsync(index);
-            //return Task.Run(() =>
-            //{
-            //    var record = new Timer.TimeLogRecorder(InsertTimer);
-            //    ExecuteInsertAsync(index);
-            //    return record;
-            //})
-            //.ContinueWith((antecedent) =>
-            //    {
-            //        antecedent.Result.StopRecording();
-            //    }, TaskContinuationOptions.ExecuteSynchronously);
         }
 
         protected Task ExecuteSelectCqlAsync(long index)
         {
             return ExecuteSelectAsync(index);
-            //return Task.Run(() =>
-            //{
-            //    var record = new Timer.TimeLogRecorder(SelectTimer);
-            //    ExecuteSelectAsync(index);
-            //    return record;
-            //})
-            //.ContinueWith((antecedent) =>
-            //{
-            //    antecedent.Result.StopRecording();
-            //}, TaskContinuationOptions.ExecuteSynchronously);
         }
 
         protected abstract Task ExecuteInsertAsync(long index);

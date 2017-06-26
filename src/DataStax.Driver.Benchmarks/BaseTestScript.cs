@@ -25,12 +25,12 @@ namespace DataStax.Driver.Benchmarks
         private static readonly Dictionary<int, Metric> WriteMetrics = new Dictionary<int, Metric>();
         private static readonly Dictionary<int, Metric> ReadMetrics = new Dictionary<int, Metric>();
 
-        public void Run(Options options)
+        public Task Run(Options options)
         {
             Options = options;
 
             Setup();
-            Start();
+            return Task.Run(() => { Start(); });
         }
 
         protected abstract void Setup();
@@ -79,7 +79,7 @@ namespace DataStax.Driver.Benchmarks
             Console.WriteLine("Warming up with 2000 clients...");
             var profile = GetProfile();
             Options.MaxOutstandingRequests = 2000;
-            profile.Init(Options);
+            profile.Init(Options).Wait();
             foreach (var numberOfClients in clients)
             {
                 WriteMetrics.Add(numberOfClients, new Metric());
@@ -95,10 +95,7 @@ namespace DataStax.Driver.Benchmarks
                 ProfileName = profile.GetType().GetTypeInfo().Name;
                 Console.WriteLine("- Using \"{0}\" profile", ProfileName);
                 Console.WriteLine("-----------------------------------------------------");
-                Task.Run(async () =>
-                {
-                    await RunSingleScriptAsync(profile, Options);
-                }).Wait();
+                RunSingleScriptAsync(profile, Options).Wait();
                 Console.WriteLine("Series finished");
                 Thread.Sleep(5000);
             }

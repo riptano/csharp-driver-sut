@@ -13,7 +13,7 @@ namespace DataStax.Driver.Benchmarks.Profiles
         /// <summary>
         /// Initialization and warmup
         /// </summary>
-        void Init(Options options);
+        Task Init(Options options);
         Task<Timer> Insert();
         Task<Timer> Select();
     }
