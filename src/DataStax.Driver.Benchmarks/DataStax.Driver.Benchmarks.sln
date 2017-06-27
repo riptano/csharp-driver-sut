@@ -1,20 +1,13 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio 14
-VisualStudioVersion = 14.0.25420.1
-MinimumVisualStudioVersion = 10.0.40219.1
+# Visual Studio 15
+VisualStudioVersion = 15.0.26430.14
+MinimumVisualStudioVersion = 15.0
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DataStax.Driver.Benchmarks", "DataStax.Driver.Benchmarks.csproj", "{BB884375-0C54-4184-AC13-6B19437CAE19}"
 EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = ".nuget", ".nuget", "{08934732-B12D-49B9-A58E-B17AFF89E2E3}"
-	ProjectSection(SolutionItems) = preProject
-		.nuget\NuGet.Config = .nuget\NuGet.Config
-		.nuget\NuGet.exe = .nuget\NuGet.exe
-		.nuget\NuGet.targets = .nuget\NuGet.targets
-	EndProjectSection
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Cassandra", "..\..\csharp-driver\src\Cassandra\Cassandra.csproj", "{FF387F9E-2BD4-4917-BA6E-31345A65E45E}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Cassandra", "..\..\csharp-driver\src\Cassandra\Cassandra.csproj", "{6E8C45DA-D958-4C75-98C3-B54C883299A2}"
-EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Dse", "..\..\csharp-dse-driver\src\Dse\Dse.csproj", "{B93414CC-B6E1-4E5D-BA18-8171E30B4CFB}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Dse", "..\..\csharp-dse-driver\src\Dse\Dse.csproj", "{43BB14C6-C64A-4E07-AA3E-90A7A020CBA2}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -26,14 +19,14 @@ Global
 		{BB884375-0C54-4184-AC13-6B19437CAE19}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{BB884375-0C54-4184-AC13-6B19437CAE19}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{BB884375-0C54-4184-AC13-6B19437CAE19}.Release|Any CPU.Build.0 = Release|Any CPU
-		{6E8C45DA-D958-4C75-98C3-B54C883299A2}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{6E8C45DA-D958-4C75-98C3-B54C883299A2}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{6E8C45DA-D958-4C75-98C3-B54C883299A2}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{6E8C45DA-D958-4C75-98C3-B54C883299A2}.Release|Any CPU.Build.0 = Release|Any CPU
-		{B93414CC-B6E1-4E5D-BA18-8171E30B4CFB}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{B93414CC-B6E1-4E5D-BA18-8171E30B4CFB}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{B93414CC-B6E1-4E5D-BA18-8171E30B4CFB}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{B93414CC-B6E1-4E5D-BA18-8171E30B4CFB}.Release|Any CPU.Build.0 = Release|Any CPU
+		{FF387F9E-2BD4-4917-BA6E-31345A65E45E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{FF387F9E-2BD4-4917-BA6E-31345A65E45E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{FF387F9E-2BD4-4917-BA6E-31345A65E45E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{FF387F9E-2BD4-4917-BA6E-31345A65E45E}.Release|Any CPU.Build.0 = Release|Any CPU
+		{43BB14C6-C64A-4E07-AA3E-90A7A020CBA2}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{43BB14C6-C64A-4E07-AA3E-90A7A020CBA2}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{43BB14C6-C64A-4E07-AA3E-90A7A020CBA2}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{43BB14C6-C64A-4E07-AA3E-90A7A020CBA2}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

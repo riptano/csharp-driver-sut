@@ -8,8 +8,7 @@ It uses the [killrvideo schema](https://github.com/pmcfadin/cassandra-videodb-sa
 
 ### Windows
 
-- .NET Framework 4.5+
-- msbuild in PATH
+- .Net Core 1.0 (https://www.microsoft.com/net/download/core)
 - gnuplot (choco install -y gnuplot)
 
 ## Usage
@@ -26,8 +25,9 @@ Use `build --help` to display the options.
 
 Options:
 
-* driver : driver and branch used by benchmark test. e.g. cassandra
-* branch : driver and branch used by benchmark test. e.g. master
+* driver : driver used by benchmark test. e.g. cassandra
+* branch : branch used by benchmark test. e.g. master
+* framework : framework used by benchmark test. e.g. net452 or netcoreapp1.0
 * -s : Number of series of tests for each outstanding setup. (default: 5)
 * -o : Number of oustanding requests. 
     * Use 0 (zero) to run against all the configurations : 10 20 30 40 50 70 90 110 130 150 180 210 240 270 300 340 380 420 460 500
@@ -39,7 +39,7 @@ Options:
 Example:
 
 ```bash
-> build <driver> <branch> -s 5 -o 0 -r 1000000 -c 192.168.1.100 -w standard -p 1
+> build <driver> <branch> <framework> -s 5 -o 0 -r 1000000 -c 192.168.1.100 -w standard -p 1
 ```
 
 ## Usage samples
@@ -49,7 +49,7 @@ Example:
 Use oss driver branch master, execute 1,000,000 requests with 512 as maximum outstanding requests (in-flight), using 192.168.1.100 as Cassandra cluster contact point.
 
 ```bash
-> build cassandra master -s 5 -o 512 -r 1000000 -c 192.168.1.100
+> build cassandra master net452 -s 5 -o 512 -r 1000000 -c 192.168.1.100
 ```
 
 #### DSE driver dse branch:
@@ -57,7 +57,7 @@ Use oss driver branch master, execute 1,000,000 requests with 512 as maximum out
 Use dse driver branch dse, execute 1,000,000 requests with 512 as maximum outstanding requests (in-flight), and 3 connections, using 192.168.1.100 as Cassandra cluster contact point.
 
 ```bash
-> build dse dse -s 5 -o 512 -r 1000000 -c 192.168.1.100 -p 3
+> build dse dse netcoreapp1.0 -s 5 -o 512 -r 1000000 -c 192.168.1.100 -p 3
 ```
 
 ### Generate comparison charts
@@ -85,8 +85,8 @@ To generate comparison charts run the following command with parameters:
 This benchmark test will compare the results of oss driver version "3.2.1" with "master", using a local cassandra server (for official results, create a cluster at proper servers).
 
 ```bash
-> build cassandra tags/3.2.1 -s 5 -o 0 -r 1000000 -c 127.0.0.1
-> build cassandra master -s 5 -o 0 -r 1000000 -c 127.0.0.1
+> build cassandra net452 tags/3.2.1 -s 5 -o 0 -r 1000000 -c 127.0.0.1
+> build cassandra net452 master -s 5 -o 0 -r 1000000 -c 127.0.0.1
 > gnuplot -e "compare='3.2.1'" -e "current='master'" -e "profile='standard'" -e "type='read'" -e "outputfile='read.png'" compare.gnuplot
 > gnuplot -e "compare='3.2.1'" -e "current='master'" -e "profile='standard'" -e "type='write'" -e "outputfile='write.png'" compare.gnuplot
 ```
