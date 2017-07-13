@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using Cassandra;
+using DataStax.Driver.Benchmarks.Metrics;
 
 namespace DataStax.Driver.Benchmarks.Profiles
 {
@@ -12,8 +13,8 @@ namespace DataStax.Driver.Benchmarks.Profiles
         /// <summary>
         /// Initialization and warmup
         /// </summary>
-        Task Init(ISession session, Options options);
-        Task Insert();
-        Task Select();
+        Task Init(Options options);
+        Task<Timer> Insert();
+        Task<Timer> Select();
     }
 }

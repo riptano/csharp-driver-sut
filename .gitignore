@@ -31,3 +31,4 @@ _ReSharper*/
 [Tt]est[Rr]esult*
 src/*/packages/*/
 csharp-driver/
+csharp-dse-driver/
