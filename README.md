@@ -30,7 +30,7 @@ Options:
 * framework : framework used by benchmark test. e.g. net452 or netcoreapp1.0
 * -s : Number of series of tests for each outstanding setup. (default: 5)
 * -o : Number of oustanding requests. 
-    * Use 0 (zero) to run against all the configurations : 10 20 30 40 50 70 90 110 130 150 180 210 240 270 300 340 380 420 460 500
+    * Use 0 (zero) to run against all the configurations : 128, 256, 512
 * -r : Number of requests to be made. (default: 10000)
 * -c : Cassandra/DSE contact point
 * -w : Workload profile: standard (default), mapper or minimal
