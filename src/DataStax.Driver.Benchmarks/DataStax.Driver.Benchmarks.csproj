@@ -1,10 +1,9 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFrameworks>net452;netcoreapp1.0</TargetFrameworks>
+    <TargetFrameworks>net452;netcoreapp2.0;netcoreapp2.1</TargetFrameworks>
     <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
     <OutputType>Exe</OutputType>
-    <RuntimeIdentifiers>win7-x64</RuntimeIdentifiers>
   </PropertyGroup>
   
   <ItemGroup Condition=" '$(TargetFramework)' == 'net452' ">
@@ -18,19 +17,41 @@
     <PackageReference Include="CommandLineParser.Unofficial" Version="2.0.275" />
     <PackageReference Include="System.Diagnostics.Tracing" Version="4.3.0" />
   </ItemGroup>
-  
-  <ItemGroup>
-    <ProjectReference Include="..\..\csharp-driver\src\Cassandra\Cassandra.csproj" />
-    <ProjectReference Include="..\..\csharp-dse-driver\src\Dse\Dse.csproj" />
+    
+  <ItemGroup Condition=" '$(TargetFramework)' == 'net452' ">
+    <ProjectReference Include="..\..\..\..\Datastax\csharp-driver\src\Cassandra\Cassandra.csproj">
+      <SetTargetFramework>TargetFramework=net45</SetTargetFramework>
+    </ProjectReference>
+    <ProjectReference Include="..\..\..\csharp-dse-driver\src\Dse\Dse.csproj">
+      <SetTargetFramework>TargetFramework=net45</SetTargetFramework>
+    </ProjectReference>
+  </ItemGroup>
+
+  <ItemGroup Condition=" '$(TargetFramework)' == 'netcoreapp2.0' ">
+    <ProjectReference Include="..\..\..\..\Datastax\csharp-driver\src\Cassandra\Cassandra.csproj">
+      <SetTargetFramework>TargetFramework=netstandard1.5</SetTargetFramework>
+    </ProjectReference>
+    <ProjectReference Include="..\..\..\csharp-dse-driver\src\Dse\Dse.csproj">
+      <SetTargetFramework>TargetFramework=netstandard1.5</SetTargetFramework>
+    </ProjectReference>
   </ItemGroup>
   
-  <ItemGroup Condition="'$(TargetFramework)' == 'netcoreapp1.0'">
+  <ItemGroup Condition=" '$(TargetFramework)' == 'netcoreapp2.1' ">
+    <ProjectReference Include="..\..\..\..\Datastax\csharp-driver\src\Cassandra\Cassandra.csproj">
+      <SetTargetFramework>TargetFramework=netstandard2.0</SetTargetFramework>
+    </ProjectReference>
+    <ProjectReference Include="..\..\..\csharp-dse-driver\src\Dse\Dse.csproj">
+      <SetTargetFramework>TargetFramework=netstandard2.0</SetTargetFramework>
+    </ProjectReference>
+  </ItemGroup>
+  
+  <ItemGroup Condition="'$(TargetFramework)' != 'net452'">
     <PackageReference Include="System.Diagnostics.TextWriterTraceListener">
       <Version>4.3.0</Version>
     </PackageReference>
   </ItemGroup>
-
-  <PropertyGroup Condition=" '$(TargetFramework)' == 'netcoreapp1.0' ">
+  
+  <PropertyGroup Condition=" '$(TargetFramework)' == 'netcoreapp2.0' ">
     <DefineConstants>$(DefineConstants);NETCORE</DefineConstants>
   </PropertyGroup>
 
