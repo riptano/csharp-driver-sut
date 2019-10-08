@@ -1,15 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.Linq;
-using System.Net;
-using System.Reflection;
-using System.Threading.Tasks;
-using Cassandra;
-using CommandLine;
-using DataStax.Driver.Benchmarks.Models;
-using DataStax.Driver.Benchmarks.Profiles;
-using Microsoft.Owin.Hosting;
+﻿using CommandLine;
 
 namespace DataStax.Driver.Benchmarks
 {

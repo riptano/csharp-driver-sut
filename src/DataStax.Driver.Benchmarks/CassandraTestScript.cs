@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Diagnostics;
-using System.Reflection;
 using Cassandra;
 using DataStax.Driver.Benchmarks.Profiles;
 
@@ -13,7 +12,7 @@ namespace DataStax.Driver.Benchmarks
         protected override void Setup()
         {
             Diagnostics.CassandraTraceSwitch.Level = Options.Debug ? TraceLevel.Info : TraceLevel.Warning;
-            Trace.Listeners.Add(new ConsoleTraceListener());
+            Trace.Listeners.Add(new TextWriterTraceListener(Console.Out));
             DriverVersion = Options.Version;
             _cluster = Cluster.Builder()
                 .AddContactPoint(Options.ContactPoint)
