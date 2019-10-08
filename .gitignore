@@ -31,5 +31,7 @@ obj/
 _ReSharper*/
 [Tt]est[Rr]esult*
 src/*/packages/*/
-csharp-driver/
-csharp-dse-driver/
+csharp-driver
+csharp-driver-private
+csharp-dse-driver
+*.csv

@@ -19,28 +19,28 @@
   </ItemGroup>
     
   <ItemGroup Condition=" '$(TargetFramework)' == 'net452' ">
-    <ProjectReference Include="..\..\..\..\Datastax\csharp-driver\src\Cassandra\Cassandra.csproj">
+    <ProjectReference Include="..\..\csharp-driver\src\Cassandra\Cassandra.csproj">
       <SetTargetFramework>TargetFramework=net45</SetTargetFramework>
     </ProjectReference>
-    <ProjectReference Include="..\..\..\csharp-dse-driver\src\Dse\Dse.csproj">
+    <ProjectReference Include="..\..\csharp-dse-driver\src\Dse\Dse.csproj">
       <SetTargetFramework>TargetFramework=net45</SetTargetFramework>
     </ProjectReference>
   </ItemGroup>
 
   <ItemGroup Condition=" '$(TargetFramework)' == 'netcoreapp2.0' ">
-    <ProjectReference Include="..\..\..\..\Datastax\csharp-driver\src\Cassandra\Cassandra.csproj">
+    <ProjectReference Include="..\..\csharp-driver\src\Cassandra\Cassandra.csproj">
       <SetTargetFramework>TargetFramework=netstandard1.5</SetTargetFramework>
     </ProjectReference>
-    <ProjectReference Include="..\..\..\csharp-dse-driver\src\Dse\Dse.csproj">
+    <ProjectReference Include="..\..\csharp-dse-driver\src\Dse\Dse.csproj">
       <SetTargetFramework>TargetFramework=netstandard1.5</SetTargetFramework>
     </ProjectReference>
   </ItemGroup>
   
   <ItemGroup Condition=" '$(TargetFramework)' == 'netcoreapp2.1' ">
-    <ProjectReference Include="..\..\..\..\Datastax\csharp-driver\src\Cassandra\Cassandra.csproj">
+    <ProjectReference Include="..\..\csharp-driver\src\Cassandra\Cassandra.csproj">
       <SetTargetFramework>TargetFramework=netstandard2.0</SetTargetFramework>
     </ProjectReference>
-    <ProjectReference Include="..\..\..\csharp-dse-driver\src\Dse\Dse.csproj">
+    <ProjectReference Include="..\..\csharp-dse-driver\src\Dse\Dse.csproj">
       <SetTargetFramework>TargetFramework=netstandard2.0</SetTargetFramework>
     </ProjectReference>
   </ItemGroup>

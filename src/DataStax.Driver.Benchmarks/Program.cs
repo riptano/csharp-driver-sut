@@ -1,4 +1,5 @@
-﻿using CommandLine;
+﻿using System;
+using CommandLine;
 
 namespace DataStax.Driver.Benchmarks
 {
@@ -18,11 +19,16 @@ namespace DataStax.Driver.Benchmarks
 
         private static ITestScript CreateTestScript(Options options)
         {
-            if (options.Driver == "dse")
+            switch (options.Driver)
             {
-                return new DseTestScript();
+                case "dse":
+                    return new DseTestScript();
+                case "cassandra":
+                case "cassandra-private":
+                    return new CassandraTestScript();
+                default:
+                    throw new ArgumentException("driver parameter is invalid: " + options.Driver + ". Must be dse, cassandra or cassandra-private");
             }
-            return new CassandraTestScript();
         }
     }
 }

@@ -5,9 +5,9 @@ VisualStudioVersion = 15.0.26430.14
 MinimumVisualStudioVersion = 15.0
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DataStax.Driver.Benchmarks", "DataStax.Driver.Benchmarks.csproj", "{BB884375-0C54-4184-AC13-6B19437CAE19}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Dse", "..\..\..\csharp-dse-driver\src\Dse\Dse.csproj", "{670441E8-F5E2-4F06-97DD-B03628085BD0}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Dse", "..\..\csharp-dse-driver\src\Dse\Dse.csproj", "{670441E8-F5E2-4F06-97DD-B03628085BD0}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Cassandra", "..\..\..\..\Datastax\csharp-driver\src\Cassandra\Cassandra.csproj", "{2230F802-9FB3-4F56-888A-F0F6E3650B14}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Cassandra", "..\..\csharp-driver\src\Cassandra\Cassandra.csproj", "{2230F802-9FB3-4F56-888A-F0F6E3650B14}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
