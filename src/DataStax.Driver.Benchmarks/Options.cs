@@ -11,10 +11,7 @@ namespace DataStax.Driver.Benchmarks
     {
         [Option('c', HelpText = "The Cluster contact point")]
         public string ContactPoint { get; set; }
-
-        [Option('e', HelpText = "The web app entry point", Default = "http://localhost:8080/")]
-        public string Url { get; set; }
-
+        
         [Option('p', HelpText = "Amount of connections per host", Default = 1)]
         public int ConnectionsPerHost { get; set; }
 
@@ -27,7 +24,7 @@ namespace DataStax.Driver.Benchmarks
         [Option('s', HelpText = "Amount of series", Default = 5)]
         public int Series { get; set; }
 
-        [Option('m', HelpText = "Metrics endpoint", Default = "127.0.0.1:2003")]
+        [Option('m', HelpText = "Metrics endpoint", Default = null)]
         public string MetricsEndpoint { get; set; }
 
         [Option('d', HelpText = "Debug", Default = false)]
@@ -35,7 +32,12 @@ namespace DataStax.Driver.Benchmarks
 
         [Option('w', HelpText = "The workload profile (standard|minimal|mapper)", Default = "standard")]
         public string Profile { get; set; }
-
+        
+        [Option('a', HelpText = "Enable App Metrics", Default = false)]
+        public bool AppMetrics { get; set; }
+        
+        [Value(2, HelpText = "Target Framework", Required = true)]
+        public string Framework { get; set; }
 
         [Value(0, Required = true)]
         public string Driver { get; set; }

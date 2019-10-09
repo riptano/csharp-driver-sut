@@ -9,7 +9,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Dse", "..\..\csharp-dse-dri
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Cassandra", "..\..\csharp-driver\src\Cassandra\Cassandra.csproj", "{2230F802-9FB3-4F56-888A-F0F6E3650B14}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Cassandra.AppMetrics", "..\..\..\..\Datastax\csharp-driver\src\Extensions\Cassandra.AppMetrics\Cassandra.AppMetrics.csproj", "{85C6D3E0-E47C-43F4-B8DA-2321D9F2114D}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Cassandra.AppMetrics", "..\..\csharp-driver\src\Extensions\Cassandra.AppMetrics\Cassandra.AppMetrics.csproj", "{85C6D3E0-E47C-43F4-B8DA-2321D9F2114D}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

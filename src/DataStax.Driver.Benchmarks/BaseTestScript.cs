@@ -30,7 +30,7 @@ namespace DataStax.Driver.Benchmarks
             Options = options;
 
             Setup();
-            return Task.Run(() => { Start(); });
+            return Task.Factory.StartNew(() => { Start(); }, TaskCreationOptions.LongRunning);
         }
 
         protected abstract void Setup();
@@ -74,12 +74,12 @@ namespace DataStax.Driver.Benchmarks
             if (Options.MaxOutstandingRequests == 0)
             {
                 //run all confs
-                clients = new[] { 128, 256, 512 };
+                clients = new[] { 128, 256, 512, 1024 };
             }
             Console.WriteLine("Warming up with 2000 clients...");
             var profile = GetProfile();
             Options.MaxOutstandingRequests = 2000;
-            profile.Init(Options).Wait();
+            profile.Init(Options).GetAwaiter().GetResult();
             foreach (var numberOfClients in clients)
             {
                 WriteMetrics.Add(numberOfClients, new Metric());
@@ -95,7 +95,7 @@ namespace DataStax.Driver.Benchmarks
                 ProfileName = profile.GetType().GetTypeInfo().Name;
                 Console.WriteLine("- Using \"{0}\" profile", ProfileName);
                 Console.WriteLine("-----------------------------------------------------");
-                RunSingleScriptAsync(profile, Options).Wait();
+                RunSingleScriptAsync(profile, Options).GetAwaiter().GetResult();
                 Console.WriteLine("Series finished");
                 Thread.Sleep(5000);
             }
@@ -111,7 +111,7 @@ namespace DataStax.Driver.Benchmarks
             for (var i = 0; i < options.Series; i++)
             {
                 var watch = Stopwatch.StartNew();
-                var seriesTimer = await workload();
+                var seriesTimer = await workload().ConfigureAwait(false);
                 watch.Stop();
                 seriesTimer.Count(options.CqlRequests);
                 seriesTimer.TotalTimeInMilliseconds = watch.ElapsedMilliseconds;
@@ -127,11 +127,11 @@ namespace DataStax.Driver.Benchmarks
         private async Task RunSingleScriptAsync(IProfile profile, Options options)
         {
             Console.WriteLine("Insert test");
-            var totalInsertTime = await WorkloadTask(profile.Insert, options, WriteMetrics[Options.MaxOutstandingRequests]);
+            var totalInsertTime = await WorkloadTask(profile.Insert, options, WriteMetrics[Options.MaxOutstandingRequests]).ConfigureAwait(false);
             Console.WriteLine("--------------------");
 
             Console.WriteLine("Select test");
-            var totalSelectTime = await WorkloadTask(profile.Select, options, ReadMetrics[Options.MaxOutstandingRequests]);
+            var totalSelectTime = await WorkloadTask(profile.Select, options, ReadMetrics[Options.MaxOutstandingRequests]).ConfigureAwait(false);
             Console.WriteLine(
                 "______________________________________\n" +
                 "|      Insert      |       Select    |\n" +

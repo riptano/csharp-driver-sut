@@ -1,68 +1,56 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Threading;
 using System.Threading.Tasks;
 
 namespace DataStax.Driver.Benchmarks
 {
     public static class Utils
     {
-        public static Task Times(long times, int limit, Func<long, Task> method)
+        public static async Task RunMultipleThreadsAsync(long times, int limit, Func<long, Task> method)
         {
-            var counter = new SendReceiveCounter();
-            var tcs = new TaskCompletionSource<bool>();
             if (limit > times)
             {
                 limit = (int)times;
             }
+
+            var perThread = times / (double)limit;
+            var perThreadInt = (int)perThread;
+            var remainder = times - (perThreadInt * limit);
+            var tasks = new List<Task>(limit);
+            long lastMaxIndex = 0;
+            long totalCount = 0;
             for (var i = 0; i < limit; i++)
             {
-                ExecuteOnceAndContinue(times, method, tcs, counter);
-            }
-            return tcs.Task;
-        }
-
-
-        private static void ExecuteOnceAndContinue(long times, Func<long, Task> method, TaskCompletionSource<bool> tcs, SendReceiveCounter counter)
-        {
-            var index = counter.IncrementSent() - 1L;
-            if (index >= times)
-            {
-                return;
-            }
-            var t1 = method(index);
-            t1.ContinueWith(t =>
-            {
-                if (t.Exception != null)
+                var currentIndex = lastMaxIndex;
+                var maxIndex = currentIndex + perThreadInt;
+                if (remainder > 0)
                 {
-                    tcs.TrySetException(t.Exception.InnerException);
-                    return;
+                    maxIndex++;
+                    remainder--;
                 }
-                var received = counter.IncrementReceived();
-                if (received == times)
-                {
-                    tcs.TrySetResult(true);
-                    return;
-                }
-                ExecuteOnceAndContinue(times, method, tcs, counter);
-            }, TaskContinuationOptions.ExecuteSynchronously);
-        }
-        
-        public class SendReceiveCounter
-        {
-            private long _receiveCounter;
-            private long _sendCounter;
 
-            public long IncrementSent()
-            {
-                return Interlocked.Increment(ref _sendCounter);
+                lastMaxIndex = maxIndex;
+                tasks.Add(Task.Run(async () =>
+                {
+                    for (var j = currentIndex; j < maxIndex; j++)
+                    {
+                        await method(j).ConfigureAwait(false);
+                    }
+                }));
+
+                totalCount += (maxIndex - currentIndex);
             }
 
-            public long IncrementReceived()
+            Console.WriteLine("Count: " + totalCount + ". Expected: " + times);
+
+            try
             {
-                return Interlocked.Increment(ref _receiveCounter);
+                await Task.WhenAll(tasks).ConfigureAwait(false);
+            }
+            catch (AggregateException ex)
+            {
+                throw ex.InnerException ?? ex.InnerExceptions.FirstOrDefault() ?? ex;
             }
         }
     }
