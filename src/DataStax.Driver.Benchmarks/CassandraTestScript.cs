@@ -1,11 +1,11 @@
 ﻿using System;
 using System.Diagnostics;
-#if !NET452 && !NETCOREAPP2_0
-using System.Threading.Tasks;
-using App.Metrics;
-using App.Metrics.Reporting.Graphite;
-using App.Metrics.Scheduling;
-#endif
+//#if !NET452 && !NETCOREAPP2_0
+//using System.Threading.Tasks;
+//using App.Metrics;
+//using App.Metrics.Reporting.Graphite;
+//using App.Metrics.Scheduling;
+//#endif
 using Cassandra;
 using Cassandra.Metrics;
 using DataStax.Driver.Benchmarks.Profiles;
@@ -59,30 +59,30 @@ namespace DataStax.Driver.Benchmarks
 
         private Builder ConfigureAppMetrics(Builder builder)
         {
-            if (Options.AppMetrics)
-            {
-#if NET452 || NETCOREAPP2_0
-                throw new ArgumentException("App Metrics are not supported in NET452 and NETSTANDARD1.5");
-#else
-                var metricsRoot = new MetricsBuilder()
-                    .Report.ToGraphite(opt => { opt.Graphite = new GraphiteOptions(new Uri(Options.MetricsEndpoint)); })
-                    .Build();
+//            if (Options.AppMetrics)
+//            {
+//#if NET452 || NETCOREAPP2_0
+//                throw new ArgumentException("App Metrics are not supported in NET452 and NETSTANDARD1.5");
+//#else
+//                var metricsRoot = new MetricsBuilder()
+//                    .Report.ToGraphite(opt => { opt.Graphite = new GraphiteOptions(new Uri(Options.MetricsEndpoint)); })
+//                    .Build();
                 
-                var scheduler = new AppMetricsTaskScheduler(
-                    TimeSpan.FromMilliseconds(5000),
-                    async () => { await Task.WhenAll(metricsRoot.ReportRunner.RunAllAsync()); });
+//                var scheduler = new AppMetricsTaskScheduler(
+//                    TimeSpan.FromMilliseconds(5000),
+//                    async () => { await Task.WhenAll(metricsRoot.ReportRunner.RunAllAsync()); });
 
-                scheduler.Start();
+//                scheduler.Start();
 
-                return builder.WithMetrics(
-                    metricsRoot.CreateDriverMetricsProvider(), 
-                    new Cassandra.Metrics.MetricsOptions().SetPathPrefix(
-                        $"{Options.Driver.Replace('.', '_')}" +
-                        $".{Options.Version.Replace('.', '_')}" +
-                        $".{Options.Framework.Replace('.', '_')}" +
-                        $".{Options.Profile.Replace('.', '_')}"));
-#endif
-            }
+//                return builder.WithMetrics(
+//                    metricsRoot.CreateDriverMetricsProvider(), 
+//                    new Cassandra.Metrics.MetricsOptions().SetPathPrefix(
+//                        $"{Options.Driver.Replace('.', '_')}" +
+//                        $".{Options.Version.Replace('.', '_')}" +
+//                        $".{Options.Framework.Replace('.', '_')}" +
+//                        $".{Options.Profile.Replace('.', '_')}"));
+//#endif
+//            }
 
             return builder;
         }
