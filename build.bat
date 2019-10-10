@@ -20,13 +20,13 @@ if "%clone%"=="true" (
 	if "%driver%"=="dse" (
 		cd csharp-dse-driver
 		git fetch origin %branch%
-		git reset --hard %branch%
+		git reset --hard origin/%branch%
 		if %errorlevel% neq 0 exit /b %errorlevel%
 	)
 	if "%driver%"=="cassandra" (
 		cd csharp-driver
 		git fetch origin %branch%
-		git reset --hard %branch%
+		git reset --hard origin/%branch%
 		if %errorlevel% neq 0 exit /b %errorlevel%
 	)
 	if "%driver%"=="cassandra-private" (

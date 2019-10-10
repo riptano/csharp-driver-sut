@@ -134,7 +134,7 @@ namespace DataStax.Driver.Benchmarks.Metrics
 
         public static string GetMetricsCsvHeader()
         {
-            return "min,25,50,75,95,98,99,max,mean,count,time,thrpt";
+            return "min,50,99,max,mean";
         }
 
         public string GetMetricsCsvLine()
@@ -154,7 +154,7 @@ namespace DataStax.Driver.Benchmarks.Metrics
                 timeLog = timeLog.Next;
             }
 
-            var percentiles = GetPercentiles(new int[] { 25, 50, 75, 95, 98, 99 }, copiedLogs);
+            var percentiles = GetPercentiles(new int[] { 50, 99 }, copiedLogs);
 
             var min = string.Format("{0},", TimeLogs.Min());
             buffer.Append(min);
@@ -170,17 +170,17 @@ namespace DataStax.Driver.Benchmarks.Metrics
             var mean = string.Format("{0},", ((decimal) TimeLogs.Sum() / TimeLogs.Count).ToString("F02", CultureInfo.InvariantCulture));
             buffer.Append(mean);
 
-            //count
-            var count = string.Format("{0},", TimeLogs.Count);
-            buffer.Append(count);
+            ////count
+            //var count = string.Format("{0},", TimeLogs.Count);
+            //buffer.Append(count);
 
-            //count
-            var totalTime = string.Format("{0},", TotalTimeInMilliseconds);
-            buffer.Append(totalTime);
+            ////count
+            //var totalTime = string.Format("{0},", TotalTimeInMilliseconds);
+            //buffer.Append(totalTime);
 
-            //thrpt
-            var thrpt = string.Format("{0}", GetThroughput().ToString("F02", CultureInfo.InvariantCulture));
-            buffer.Append(thrpt);
+            ////thrpt
+            //var thrpt = string.Format("{0}", GetThroughput().ToString("F02", CultureInfo.InvariantCulture));
+            //buffer.Append(thrpt);
 
             return buffer.ToString();
         }
