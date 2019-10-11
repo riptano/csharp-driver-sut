@@ -15,10 +15,9 @@ set border 2
 set label '128 requests' at 1,200 rotate center font 'Verdana,10'
 set label '256 requests' at 2,200 rotate center font 'Verdana,10'
 set label '512 requests' at 3,200 rotate center font 'Verdana,10'
-set label '1024 requests' at 4,200 rotate center font 'Verdana,10'
 set xrange [0:20.5]
-input1 = sprintf("throughput-%s-%s-%s.csv", compare, profile, type)
-input2 = sprintf("throughput-%s-%s-%s.csv", current, profile, type)
+input1 = sprintf("throughput-%s-%s-%s-%s.csv", compare, profile, framework, type)
+input2 = sprintf("throughput-%s-%s-%s-%s.csv", current, profile, framework, type)
 
 plot \
     input1 using (0.8):2:(0.1):1 title compare ,\

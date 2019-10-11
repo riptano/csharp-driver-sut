@@ -117,7 +117,7 @@ namespace DataStax.Driver.Benchmarks
             if (Options.MaxOutstandingRequests == 0)
             {
                 //run all confs
-                clients = new[] { 128, 256, 512, 1024 };
+                clients = new[] { 128, 256, 512 };
             }
             Console.WriteLine("Warming up with 2000 clients...");
             var profile = GetProfile();
