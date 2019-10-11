@@ -35,6 +35,9 @@ namespace DataStax.Driver.Benchmarks
         
         [Option('a', HelpText = "Enable App Metrics", Default = false)]
         public bool AppMetrics { get; set; }
+
+        [Option('i', HelpText = "App Metrics report interval (miliseconds)", Default = 10000)]
+        public int AppMetricsInterval { get; set; }
         
         [Value(2, HelpText = "Target Framework", Required = true)]
         public string Framework { get; set; }

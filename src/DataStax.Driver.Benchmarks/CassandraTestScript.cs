@@ -65,11 +65,15 @@ namespace DataStax.Driver.Benchmarks
                 throw new ArgumentException("App Metrics are not supported in NET452 and NETSTANDARD1.5");
 #else
                 var metricsRoot = new MetricsBuilder()
-                    .Report.ToGraphite(opt => { opt.Graphite = new GraphiteOptions(new Uri(Options.MetricsEndpoint)); })
+                    .Report.ToGraphite(opt =>
+                    {
+                        opt.Graphite = new GraphiteOptions(new Uri(Options.MetricsEndpoint));
+                        opt.FlushInterval = TimeSpan.FromMilliseconds(Options.AppMetricsInterval);
+                    })
                     .Build();
                 
                 var scheduler = new AppMetricsTaskScheduler(
-                    TimeSpan.FromMilliseconds(5000),
+                    TimeSpan.FromMilliseconds(Options.AppMetricsInterval),
                     async () => { await Task.WhenAll(metricsRoot.ReportRunner.RunAllAsync()); });
 
                 scheduler.Start();
