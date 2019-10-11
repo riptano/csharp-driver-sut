@@ -7,7 +7,7 @@ using System.Diagnostics;
 //using App.Metrics.Scheduling;
 //#endif
 using Cassandra;
-using Cassandra.Metrics;
+//using Cassandra.Metrics;
 using DataStax.Driver.Benchmarks.Profiles;
 
 namespace DataStax.Driver.Benchmarks
