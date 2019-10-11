@@ -78,13 +78,22 @@ namespace DataStax.Driver.Benchmarks
 
                 scheduler.Start();
 
+                var metricOptions = new Cassandra.Metrics.MetricsOptions().SetPathPrefix(
+                    $"{Options.Driver.Replace('.', '_')}" +
+                    $".{Options.Version.Replace('.', '_')}" +
+                    $".{Options.Framework.Replace('.', '_')}" +
+                    $".{Options.Profile.Replace('.', '_')}");
+
+                if (!Options.TimerMetrics)
+                {
+                    metricOptions = metricOptions
+                        .SetDisabledNodeMetrics(new[] { NodeMetric.Timers.CqlMessages })
+                        .SetDisabledSessionMetrics(new[] { SessionMetric.Timers.CqlRequests });
+                }
+
                 return builder.WithMetrics(
                     metricsRoot.CreateDriverMetricsProvider(), 
-                    new Cassandra.Metrics.MetricsOptions().SetPathPrefix(
-                        $"{Options.Driver.Replace('.', '_')}" +
-                        $".{Options.Version.Replace('.', '_')}" +
-                        $".{Options.Framework.Replace('.', '_')}" +
-                        $".{Options.Profile.Replace('.', '_')}"));
+                    metricOptions);
 #endif
             }
 

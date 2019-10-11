@@ -38,6 +38,9 @@ namespace DataStax.Driver.Benchmarks
 
         [Option('i', HelpText = "App Metrics report interval (miliseconds)", Default = 10000)]
         public int AppMetricsInterval { get; set; }
+
+        [Option('t', HelpText = "Enable Timer Metrics", Default = false)]
+        public bool TimerMetrics { get; set; }
         
         [Value(2, HelpText = "Target Framework", Required = true)]
         public string Framework { get; set; }
