@@ -1,7 +1,8 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFrameworks>net452;net461;netcoreapp2.0;netcoreapp2.1</TargetFrameworks>
+    <TargetFrameworks Condition="'$(BuildCoreOnly)' != 'True'">net452;net461;netcoreapp2.0;netcoreapp2.1</TargetFrameworks>
+    <TargetFrameworks Condition="'$(BuildCoreOnly)' == 'True'">netcoreapp2.0;netcoreapp2.1</TargetFrameworks>
     <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
     <OutputType>Exe</OutputType>
   </PropertyGroup>
