@@ -42,6 +42,9 @@ namespace DataStax.Driver.Benchmarks
         [Option('t', HelpText = "Enable Timer Metrics", Default = false)]
         public bool TimerMetrics { get; set; }
         
+        [Option('b', HelpText = "Enable Socket Stream Mode", Default = false)]
+        public bool StreamMode { get; set; }
+        
         [Value(2, HelpText = "Target Framework", Required = true)]
         public string Framework { get; set; }
 
