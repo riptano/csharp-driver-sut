@@ -78,7 +78,7 @@ namespace DataStax.Driver.Benchmarks
 
                 scheduler.Start();
 
-                var metricOptions = new DriverMetricsOptions().SetPathPrefix(
+                var metricOptions = new DriverMetricsOptions().SetBucketPrefix(
                     $"{Options.Driver.Replace('.', '_')}" +
                     $".{Options.Version.Replace('.', '_')}" +
                     $".{Options.Framework.Replace('.', '_')}" +
