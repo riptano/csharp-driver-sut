@@ -11,11 +11,11 @@ echo Clone: $clone
 
 if [ $clone = 'true' ]; then
 
-	if [ ! -d ./csharp-driver-sut/csharp-dse-driver ]; then
+	if [ ! -d ./csharp-dse-driver ]; then
      	git clone git@github.com:riptano/csharp-dse-driver.git
 	fi
 	
-	if [ ! -d ./csharp-driver-sut/csharp-driver ]; then
+	if [ ! -d ./csharp-driver ]; then
      	git clone git@github.com:datastax/csharp-driver.git
 	fi
 
