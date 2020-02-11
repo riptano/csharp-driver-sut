@@ -136,6 +136,7 @@ namespace DataStax.Driver.Benchmarks
                 Console.WriteLine("Using:");
                 Console.WriteLine("- Driver " + DriverVersion);
                 Console.WriteLine("- Connections per hosts " + Options.ConnectionsPerHost);
+                Console.WriteLine("- Socket Stream Mode: " + Options.StreamMode);
                 Console.WriteLine("- Max outstanding requests " + Options.MaxOutstandingRequests);
                 Console.WriteLine("- Operations per series " + Options.CqlRequests);
                 Console.WriteLine("- Series count: " + Options.Series);
