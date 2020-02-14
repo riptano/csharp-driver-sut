@@ -35,6 +35,12 @@ namespace DataStax.Driver.Benchmarks
         
         [Option('a', HelpText = "Enable App Metrics", Default = false)]
         public bool AppMetrics { get; set; }
+
+        [Option('i', HelpText = "App Metrics report interval (miliseconds)", Default = 10000)]
+        public int AppMetricsInterval { get; set; }
+
+        [Option('t', HelpText = "Enable Timer Metrics", Default = false)]
+        public bool TimerMetrics { get; set; }
         
         [Option('b', HelpText = "Enable Socket Stream Mode", Default = false)]
         public bool StreamMode { get; set; }

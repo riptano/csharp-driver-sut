@@ -14,7 +14,7 @@ namespace DataStax.Driver.Benchmarks.Profiles
         {
             get
             {
-                return "SELECT key, c0, c1, c2, c3, c4 FROM test_csharp_benchmarks_standard.standard1" +
+                return "SELECT key, c0, c1, c2, c3, c4 FROM test_csharp_benchmarks_standard_mapper.standard1" +
                        " WHERE key = ?";
             }
         }
