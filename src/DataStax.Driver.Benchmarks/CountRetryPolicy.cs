@@ -3,7 +3,7 @@ using Cassandra;
 
 namespace DataStax.Driver.Benchmarks
 {
-    public class CountRetryPolicy : IRetryPolicy, Dse.IRetryPolicy
+    public class CountRetryPolicy : IRetryPolicy
     {
         private long _countRead;
         private long _countWrite;
@@ -42,26 +42,6 @@ namespace DataStax.Driver.Benchmarks
         {
             Interlocked.Increment(ref _countUnavailable);
             return RetryDecision.Ignore();
-        }
-
-        public Dse.RetryDecision OnReadTimeout(Dse.IStatement query, Dse.ConsistencyLevel cl, int requiredResponses, int receivedResponses,
-            bool dataRetrieved, int nbRetry)
-        {
-            Interlocked.Increment(ref _countRead);
-            return Dse.RetryDecision.Ignore();
-        }
-
-        public Dse.RetryDecision OnWriteTimeout(Dse.IStatement query, Dse.ConsistencyLevel cl, string writeType, int requiredAcks, int receivedAcks,
-            int nbRetry)
-        {
-            Interlocked.Increment(ref _countWrite);
-            return Dse.RetryDecision.Ignore();
-        }
-
-        public Dse.RetryDecision OnUnavailable(Dse.IStatement query, Dse.ConsistencyLevel cl, int requiredReplica, int aliveReplica, int nbRetry)
-        {
-            Interlocked.Increment(ref _countUnavailable);
-            return Dse.RetryDecision.Ignore();
         }
     }
 }
