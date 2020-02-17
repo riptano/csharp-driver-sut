@@ -21,8 +21,6 @@ namespace DataStax.Driver.Benchmarks
         {
             switch (options.Driver)
             {
-                case "dse":
-                    return new DseTestScript();
                 case "cassandra":
                 case "cassandra-private":
                     return new CassandraTestScript();
