@@ -23,13 +23,11 @@
       
   <ItemGroup Condition=" '$(TargetFramework)' == 'net452' ">
     <ProjectReference Include="..\..\csharp-driver\src\Cassandra\Cassandra.csproj">
-      <SetTargetFramework>TargetFramework=net45</SetTargetFramework>
     </ProjectReference>
   </ItemGroup>
   
   <ItemGroup Condition=" '$(TargetFramework)' == 'net461' ">
     <ProjectReference Include="..\..\csharp-driver\src\Cassandra\Cassandra.csproj">
-      <SetTargetFramework>TargetFramework=net45</SetTargetFramework>
     </ProjectReference>
     <ProjectReference Include="..\..\csharp-driver\src\Extensions\Cassandra.AppMetrics\Cassandra.AppMetrics.csproj">
       <SetTargetFramework>TargetFramework=net461</SetTargetFramework>
