@@ -1,42 +1,29 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
+    <OutputType>Exe</OutputType>
     <TargetFrameworks Condition="'$(BuildCoreOnly)' != 'True'">net452;net461;netcoreapp2.1</TargetFrameworks>
     <TargetFramework Condition="'$(BuildCoreOnly)' == 'True'">netcoreapp2.1</TargetFramework>
-    <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
-    <OutputType>Exe</OutputType>
   </PropertyGroup>
-  
-  <ItemGroup Condition=" '$(TargetFramework)' == 'net452' ">
-    <Reference Include="System.Data" />
-    <Reference Include="System.Numerics" />
-    <Reference Include="System" />
-    <Reference Include="Microsoft.CSharp" />
-  </ItemGroup>
-  
-  <ItemGroup>
-    <PackageReference Include="CommandLineParser" Version="2.6.0" />
-    <PackageReference Include="Newtonsoft.Json" Version="12.0.2" />
-    <PackageReference Include="System.Diagnostics.Tracing" Version="4.3.0" />
-    <PackageReference Include="System.Net.Http" Version="4.3.4" />
-  </ItemGroup>
-      
-  <ItemGroup Condition=" '$(TargetFramework)' == 'net452' ">
-    <ProjectReference Include="..\..\csharp-driver\src\Cassandra\Cassandra.csproj">
-      <SetTargetFramework>TargetFramework=net45</SetTargetFramework>
-    </ProjectReference>
-  </ItemGroup>
-  
+
   <ItemGroup Condition=" '$(TargetFramework)' == 'net461' ">
     <ProjectReference Include="..\..\csharp-driver\src\Cassandra\Cassandra.csproj">
-      <SetTargetFramework>TargetFramework=net45</SetTargetFramework>
     </ProjectReference>
   </ItemGroup>
   
+  <ItemGroup Condition=" '$(TargetFramework)' == 'net452' ">
+    <ProjectReference Include="..\..\csharp-driver\src\Cassandra\Cassandra.csproj">
+    </ProjectReference>
+  </ItemGroup>
+
   <ItemGroup Condition=" '$(TargetFramework)' == 'netcoreapp2.1' ">
     <ProjectReference Include="..\..\csharp-driver\src\Cassandra\Cassandra.csproj">
       <SetTargetFramework>TargetFramework=netstandard2.0</SetTargetFramework>
     </ProjectReference>
+  </ItemGroup>
+  
+  <ItemGroup>
+    <PackageReference Include="CommandLineParser" Version="2.6.0" />
   </ItemGroup>
 
 </Project>
