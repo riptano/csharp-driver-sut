@@ -40,10 +40,8 @@ if "%clone%"=="true" (
 )
 
 dotnet restore "src\DataStax.Driver.Benchmarks\DataStax.Driver.Benchmarks.sln" -v minimal
-if %errorlevel% neq 0 exit /b %errorlevel%
 
-dotnet clean "src\DataStax.Driver.Benchmarks\DataStax.Driver.Benchmarks.sln" -v minimal
-if %errorlevel% neq 0 exit /b %errorlevel%
+dotnet restore "src\DataStax.Driver.Benchmarks\DataStax.Driver.Benchmarks.sln" -v minimal
 
 dotnet build "src\DataStax.Driver.Benchmarks\DataStax.Driver.Benchmarks.sln" -c Release -v minimal
 if %errorlevel% neq 0 exit /b %errorlevel%
