@@ -33,8 +33,8 @@ namespace DataStax.Driver.Benchmarks.Profiles
             await PrepareStatementsAsync().ConfigureAwait(false);
 
             // Warmup
-            await InsertMultiple(20000).ConfigureAwait(false);
-            await SelectMultiple(20000).ConfigureAwait(false);
+            await InsertMultiple(Options.WarmupRequests).ConfigureAwait(false);
+            await SelectMultiple(Options.WarmupRequests).ConfigureAwait(false);
         }
         protected abstract Task PrepareStatementsAsync();
 
@@ -53,24 +53,24 @@ namespace DataStax.Driver.Benchmarks.Profiles
             return SelectTimer;
         }
 
-        protected async Task InsertMultiple(long repeatLength = 0L)
+        protected Task InsertMultiple(long repeatLength = 0L)
         {
             InsertTimer = new Timer();
             if (repeatLength == 0)
             {
                 repeatLength = Options.CqlRequests;
             }
-            await Utils.RunMultipleThreadsAsync(repeatLength, Options.MaxOutstandingRequests, ExecuteInsertCqlAsync).ConfigureAwait(false);
+            return Utils.RunMultipleThreadsAsync(repeatLength, Options.CurrentOutstandingRequests, ExecuteInsertCqlAsync);
         }
 
-        protected async Task SelectMultiple(long repeatLength = 0L)
+        protected Task SelectMultiple(long repeatLength = 0L)
         {
             SelectTimer = new Timer();
             if (repeatLength == 0)
             {
                 repeatLength = Options.CqlRequests;
             }
-            await Utils.RunMultipleThreadsAsync(repeatLength, Options.MaxOutstandingRequests, ExecuteSelectCqlAsync).ConfigureAwait(false);
+            return Utils.RunMultipleThreadsAsync(repeatLength, Options.CurrentOutstandingRequests, ExecuteSelectCqlAsync);
         }
 
         protected Task ExecuteInsertCqlAsync(long index)

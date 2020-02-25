@@ -14,9 +14,14 @@ namespace DataStax.Driver.Benchmarks
         
         [Option('p', HelpText = "Amount of connections per host", Default = 1)]
         public int ConnectionsPerHost { get; set; }
+        
+        [Option('e', HelpText = "Number of requests for warmup", Default = 100000)]
+        public int WarmupRequests { get; set; }
 
-        [Option('o', HelpText = "Maximum outstanding requests per host", Default = 0)]
-        public int MaxOutstandingRequests { get; set; }
+        [Option('o', HelpText = "Maximum outstanding requests per host", Default = "128,256,512,1024")]
+        public string MaxOutstandingRequestsStr { get; set; }
+
+        internal int CurrentOutstandingRequests { get; set; }
 
         [Option('r', HelpText = "Amount of CQL requests per call (http request or script)", Default = 10000)]
         public int CqlRequests { get; set; }
