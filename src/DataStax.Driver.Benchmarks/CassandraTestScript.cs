@@ -39,7 +39,7 @@ namespace DataStax.Driver.Benchmarks
 
         protected override void Shutdown()
         {
-            _cluster.Shutdown(3000);
+            _cluster.Shutdown();
         }
 
         protected override IProfile GetProfile()

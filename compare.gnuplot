@@ -15,9 +15,10 @@ set style boxplot nooutliers
 set bars 0.2
 set boxwidth 0.3
 set border 2
-set label '128 requests' at graph 0.225, 0.025 rotate center font 'Verdana,10'
-set label '256 requests' at graph 0.525, 0.025 rotate center font 'Verdana,10'
-set label '512 requests' at graph 0.825, 0.025 rotate center font 'Verdana,10'
+set label '128 requests' at graph 0.160, 0.025 rotate center font 'Verdana,10'
+set label '256 requests' at graph 0.395, 0.025 rotate center font 'Verdana,10'
+set label '512 requests' at graph 0.630, 0.025 rotate center font 'Verdana,10'
+set label '1024 requests' at graph 0.865, 0.025 rotate center font 'Verdana,10'
 input1 = sprintf("throughput-%s-%s-%s-%s.csv", compare, profile, framework, type)
 input2 = sprintf("throughput-%s-%s-%s-%s.csv", current, profile, framework, type)
 

@@ -26,8 +26,6 @@ namespace DataStax.Driver.Benchmarks
         private static readonly Dictionary<int, Metric> ReadMetrics = new Dictionary<int, Metric>();
         private static readonly Dictionary<int, Metric> ReadCpuMetrics = new Dictionary<int, Metric>();
         private static readonly Dictionary<int, Metric> WriteCpuMetrics = new Dictionary<int, Metric>();
-        private static readonly Dictionary<int, List<Timer>> ReadGcMetrics = new Dictionary<int, List<Timer>>();
-        private static readonly Dictionary<int, List<Timer>> WriteGcMetrics = new Dictionary<int, List<Timer>>();
 
         public Task Run(Options options)
         {
@@ -39,35 +37,29 @@ namespace DataStax.Driver.Benchmarks
 
         protected abstract void Setup();
 
-        void GenerateReportLines(Dictionary<int, Metric> metricSeries, List<string> lines, string suffix = "thrpt")
+        void GenerateReportLines(Dictionary<int, Metric> metricSeries, List<string> lines)
         {
             foreach (var series in metricSeries.Keys)
             {
                 var metric = metricSeries[series];
-
-                lines.Add($"{series}");
-
+                
                 foreach (var throughput in metric.Metrics)
                 {
                     lines.Add($"{series} {throughput.ToString("F02", CultureInfo.InvariantCulture)}");
                 }
-                lines.Add($"{series} {suffix}");
             }
         }
         
-        void GenerateReportLines(Dictionary<int, List<Timer>> metricSeries, List<string> lines, string suffix = "gcmem")
+        void GenerateReportLines(Dictionary<int, List<Timer>> metricSeries, List<string> lines)
         {
             foreach (var series in metricSeries.Keys)
             {
                 var metrics = metricSeries[series];
-
-                lines.Add($"{series}");
-
+                
                 foreach (var metric in metrics)
                 {
                     lines.Add($"{series} {metric.GetMetricsCsvLine()}");
                 }
-                lines.Add($"{series} {Timer.GetMetricsCsvHeader()} {suffix}");
             }
         }
 
@@ -76,15 +68,11 @@ namespace DataStax.Driver.Benchmarks
             var readReportLines = new List<string>();
             var writeReportLines = new List<string>();
             var readCpuReportLines = new List<string>();
-            var readGcReportLines = new List<string>();
             var writeCpuReportLines = new List<string>();
-            var writeGcReportLines = new List<string>();
             GenerateReportLines(BaseTestScript.WriteMetrics, writeReportLines);
             GenerateReportLines(BaseTestScript.ReadMetrics, readReportLines);
-            GenerateReportLines(BaseTestScript.ReadCpuMetrics, readCpuReportLines, "cpu");
-            GenerateReportLines(BaseTestScript.ReadGcMetrics, readGcReportLines, "gcMem");
-            GenerateReportLines(BaseTestScript.WriteCpuMetrics, writeCpuReportLines, "cpu");
-            GenerateReportLines(BaseTestScript.WriteGcMetrics, writeGcReportLines, "gcMem");
+            GenerateReportLines(BaseTestScript.ReadCpuMetrics, readCpuReportLines);
+            GenerateReportLines(BaseTestScript.WriteCpuMetrics, writeCpuReportLines);
             if (writeReportLines.Count > 0)
             {
                 File.WriteAllLines(string.Format(MetricsFilePathFormat, DriverVersion, Options.Profile, Options.Framework, "write"), writeReportLines);
@@ -97,47 +85,32 @@ namespace DataStax.Driver.Benchmarks
             {
                 File.WriteAllLines(string.Format(MetricsFilePathFormat, DriverVersion, Options.Profile, Options.Framework, "readcpu"), readCpuReportLines);
             }
-            if (readGcReportLines.Count > 0)
-            {
-                File.WriteAllLines(string.Format(MetricsFilePathFormat, DriverVersion, Options.Profile, Options.Framework, "readgcmem"), readGcReportLines);
-            }
             if (writeCpuReportLines.Count > 0)
             {
                 File.WriteAllLines(string.Format(MetricsFilePathFormat, DriverVersion, Options.Profile, Options.Framework, "writecpu"), writeCpuReportLines);
-            }
-            if (writeGcReportLines.Count > 0)
-            {
-                File.WriteAllLines(string.Format(MetricsFilePathFormat, DriverVersion, Options.Profile, Options.Framework, "writegcmem"), writeGcReportLines);
             }
         }
 
         public void Start()
         {
-            var clients = new int[] { Options.MaxOutstandingRequests };
-            if (Options.MaxOutstandingRequests == 0)
-            {
-                //run all confs
-                clients = new[] { 128, 256, 512 };
-            }
+            var clients = Options.MaxOutstandingRequestsStr.Split(',').Select(int.Parse).ToArray();
             Console.WriteLine("Warming up with 2000 clients...");
+            Options.CurrentOutstandingRequests = 2000;
             var profile = GetProfile();
-            Options.MaxOutstandingRequests = 2000;
             profile.Init(Options).GetAwaiter().GetResult();
             foreach (var numberOfClients in clients)
             {
                 BaseTestScript.WriteMetrics.Add(numberOfClients, new Metric());
                 BaseTestScript.ReadMetrics.Add(numberOfClients, new Metric());
                 BaseTestScript.ReadCpuMetrics.Add(numberOfClients, new Metric());
-                BaseTestScript.ReadGcMetrics.Add(numberOfClients, new List<Timer>());
                 BaseTestScript.WriteCpuMetrics.Add(numberOfClients, new Metric());
-                BaseTestScript.WriteGcMetrics.Add(numberOfClients, new List<Timer>());
-                Options.MaxOutstandingRequests = numberOfClients;
+                Options.CurrentOutstandingRequests = numberOfClients;
                 Console.WriteLine("-----------------------------------------------------");
                 Console.WriteLine("Using:");
                 Console.WriteLine("- Driver " + DriverVersion);
                 Console.WriteLine("- Connections per hosts " + Options.ConnectionsPerHost);
                 Console.WriteLine("- Socket Stream Mode: " + Options.StreamMode);
-                Console.WriteLine("- Max outstanding requests " + Options.MaxOutstandingRequests);
+                Console.WriteLine("- Max outstanding requests " + Options.CurrentOutstandingRequests);
                 Console.WriteLine("- Operations per series " + Options.CqlRequests);
                 Console.WriteLine("- Series count: " + Options.Series);
                 ProfileName = profile.GetType().GetTypeInfo().Name;
@@ -145,83 +118,58 @@ namespace DataStax.Driver.Benchmarks
                 Console.WriteLine("-----------------------------------------------------");
                 RunSingleScriptAsync(profile, Options).GetAwaiter().GetResult();
                 Console.WriteLine("Series finished");
-                Thread.Sleep(5000);
             }
             Shutdown();
             Report();
         }
 
         protected abstract void Shutdown();
-
-        private decimal RefreshCpuUsage(Process process, TimeSpan start, ref TimeSpan oldCpuTime, ref long lastMonitorTime)
+        
+        private async Task<long> WorkloadTask(Func<Task<Timer>> workload, Options options, Metric metric, Metric cpuMetrics)
         {
-            var newCpuTime = process.TotalProcessorTime - start;
-            var cpuUsage = (newCpuTime - oldCpuTime).TotalSeconds / (Environment.ProcessorCount * ((Stopwatch.GetTimestamp() - lastMonitorTime)/(double)Stopwatch.Frequency));
-            lastMonitorTime = Stopwatch.GetTimestamp();
-            oldCpuTime = newCpuTime;
-            return (decimal)cpuUsage;
-        }
+            var totalMilliseconds = 0L;
 
-        private Task CollectCpuAndGcMetrics(CancellationTokenSource cts, Metric cpuMetrics, Timer gcMetrics)
-        {
-            return Task.Run(async () =>
-            {
-                var oldCpuTime = new TimeSpan(0);
-                var lastMonitorTime = Stopwatch.GetTimestamp();
-                var process = Process.GetCurrentProcess();
-                var start = process.TotalProcessorTime;
-                try
-                {
-                    while (!cts.Token.IsCancellationRequested)
-                    {
-                        await Task.Delay(100, cts.Token).ConfigureAwait(false);
-                        gcMetrics.AddLog(GC.GetTotalMemory(false)/1000000);
-                    }
-                }
-                catch (TaskCanceledException)
-                {
-                }
-
-                process.Refresh();
-                cpuMetrics.AddLog(RefreshCpuUsage(process, start, ref oldCpuTime, ref lastMonitorTime));
-            });
-        }
-
-        private async Task<long> WorkloadTask(Func<Task<Timer>> workload, Options options, Metric metric, Metric cpuMetrics, List<Timer> gcMetrics)
-        {
-            var workloadWatch = Stopwatch.StartNew();
             for (var i = 0; i < options.Series; i++)
             {
-                var timer = new Timer();
-                gcMetrics.Add(timer);
-                using (var cts = new CancellationTokenSource())
-                {
-                    var t = CollectCpuAndGcMetrics(cts, cpuMetrics, timer);
-                    var watch = Stopwatch.StartNew();
-                    var seriesTimer = await workload().ConfigureAwait(false);
-                    watch.Stop();
-                    cts.Cancel();
-                    await t.ConfigureAwait(false);
-                    seriesTimer.Count(options.CqlRequests);
-                    seriesTimer.TotalTimeInMilliseconds = watch.ElapsedMilliseconds;
-                    Console.WriteLine("Finished series: " + (i + 1));
-                    metric.AddLog(seriesTimer.GetThroughput());
-                    seriesTimer.TimeLogs.Clear();
-                }
+                var oldCpuTime = new TimeSpan(0);
+                var process = Process.GetCurrentProcess();
+                var start = process.TotalProcessorTime;
+
+                var initialTimestamp = Stopwatch.GetTimestamp();
+
+                var seriesTimer = await workload().ConfigureAwait(false);
+
+                var finalTimestamp = Stopwatch.GetTimestamp();
+
+                var elapsedTicks = finalTimestamp - initialTimestamp;
+                var elapsedSeconds = (finalTimestamp - initialTimestamp) / (double)Stopwatch.Frequency;
+
+                process.Refresh();
+                var newCpuTime = process.TotalProcessorTime - start;
+                var cpuUsage = ((newCpuTime - oldCpuTime).Ticks / (double)Environment.ProcessorCount) / elapsedTicks;
+                var finalCpuUsage = (decimal)cpuUsage;
+                cpuMetrics.AddLog(finalCpuUsage);
+
+                seriesTimer.Count(options.CqlRequests);
+                seriesTimer.TotalTimeInMilliseconds = (long)(elapsedSeconds * 1000);
+                Console.WriteLine("Finished series: " + (i + 1));
+                metric.AddLog(seriesTimer.GetThroughput());
+                seriesTimer.TimeLogs.Clear();
+
+                totalMilliseconds += seriesTimer.TotalTimeInMilliseconds;
             }
-            workloadWatch.Stop();
-            GC.Collect();
-            return workloadWatch.ElapsedMilliseconds;
+            
+            return totalMilliseconds;
         }
 
         private async Task RunSingleScriptAsync(IProfile profile, Options options)
         {
             Console.WriteLine("Insert test");
-            var totalInsertTime = await WorkloadTask(profile.Insert, options, BaseTestScript.WriteMetrics[Options.MaxOutstandingRequests], BaseTestScript.WriteCpuMetrics[Options.MaxOutstandingRequests], BaseTestScript.WriteGcMetrics[Options.MaxOutstandingRequests]).ConfigureAwait(false);
+            var totalInsertTime = await WorkloadTask(profile.Insert, options, BaseTestScript.WriteMetrics[Options.CurrentOutstandingRequests], BaseTestScript.WriteCpuMetrics[Options.CurrentOutstandingRequests]).ConfigureAwait(false);
             Console.WriteLine("--------------------");
 
             Console.WriteLine("Select test");
-            var totalSelectTime = await WorkloadTask(profile.Select, options, BaseTestScript.ReadMetrics[Options.MaxOutstandingRequests], BaseTestScript.ReadCpuMetrics[Options.MaxOutstandingRequests], BaseTestScript.ReadGcMetrics[Options.MaxOutstandingRequests]).ConfigureAwait(false);
+            var totalSelectTime = await WorkloadTask(profile.Select, options, BaseTestScript.ReadMetrics[Options.CurrentOutstandingRequests], BaseTestScript.ReadCpuMetrics[Options.CurrentOutstandingRequests]).ConfigureAwait(false);
             Console.WriteLine(
                 "______________________________________\n" +
                 "|      Insert      |       Select    |\n" +
