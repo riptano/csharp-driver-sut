@@ -42,6 +42,10 @@ dotnet clean src/DataStax.Driver.Benchmarks/DataStax.Driver.Benchmarks.sln -v mi
 
 dotnet build src/DataStax.Driver.Benchmarks/DataStax.Driver.Benchmarks.sln -c Release -v minimal
 
+export COMPlus_GCCpuGroup=1
+export COMPlus_gcServer=1
+export COMPlus_Thread_UseAllCpuGroups=1
+
 dotnet run --project src/DataStax.Driver.Benchmarks/DataStax.Driver.Benchmarks.csproj -c Release -f $framework -- $*
 
 set +e

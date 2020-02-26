@@ -46,5 +46,9 @@ dotnet restore "src\DataStax.Driver.Benchmarks\DataStax.Driver.Benchmarks.sln" -
 dotnet build "src\DataStax.Driver.Benchmarks\DataStax.Driver.Benchmarks.sln" -c Release -v minimal
 if %errorlevel% neq 0 exit /b %errorlevel%
 
+set COMPlus_GCCpuGroup=1
+set COMPlus_gcServer=1
+set COMPlus_Thread_UseAllCpuGroups=1
+
 dotnet run --project "src\DataStax.Driver.Benchmarks\DataStax.Driver.Benchmarks.csproj" -c Release -f "%framework%" -- %*
 if %errorlevel% neq 0 exit /b %errorlevel%
