@@ -26,6 +26,9 @@ namespace DataStax.Driver.Benchmarks
         [Option('r', HelpText = "Amount of CQL requests per call (http request or script)", Default = 10000)]
         public int CqlRequests { get; set; }
 
+        [Option('h', HelpText = "Socket Read Timeout Milliseconds", Default = 0)]
+        public int ReadTimeoutMillis { get; set; }
+
         [Option('s', HelpText = "Amount of series", Default = 5)]
         public int Series { get; set; }
 
