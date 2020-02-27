@@ -131,9 +131,8 @@ namespace DataStax.Driver.Benchmarks
 
             for (var i = 0; i < options.Series; i++)
             {
-                var oldCpuTime = new TimeSpan(0);
-                var process = Process.GetCurrentProcess();
-                var start = process.TotalProcessorTime;
+                var startTime = DateTime.UtcNow;
+                var start = Process.GetCurrentProcess().TotalProcessorTime;
 
                 var initialTimestamp = Stopwatch.GetTimestamp();
 
@@ -141,12 +140,13 @@ namespace DataStax.Driver.Benchmarks
 
                 var finalTimestamp = Stopwatch.GetTimestamp();
 
-                var elapsedTicks = finalTimestamp - initialTimestamp;
                 var elapsedSeconds = (finalTimestamp - initialTimestamp) / (double)Stopwatch.Frequency;
 
-                process.Refresh();
-                var newCpuTime = process.TotalProcessorTime - start;
-                var cpuUsage = ((newCpuTime - oldCpuTime).Ticks / (double)Environment.ProcessorCount) / elapsedTicks;
+                var endTime = DateTime.UtcNow;
+                var end = Process.GetCurrentProcess().TotalProcessorTime;
+                var cpuUsage = ((end - start).TotalMilliseconds / Environment.ProcessorCount) 
+                               / (endTime - startTime).TotalMilliseconds;
+
                 var finalCpuUsage = (decimal)cpuUsage;
                 cpuMetrics.AddLog(finalCpuUsage);
 
