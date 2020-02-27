@@ -16,7 +16,7 @@ namespace DataStax.Driver.Benchmarks
             DriverVersion = Options.Version;
             var builder = Cluster.Builder()
                 .AddContactPoint(Options.ContactPoint)
-                .WithSocketOptions(new SocketOptions().SetTcpNoDelay(true).SetReadTimeoutMillis(0).SetStreamMode(Options.StreamMode))
+                .WithSocketOptions(new SocketOptions().SetTcpNoDelay(true).SetReadTimeoutMillis(Options.ReadTimeoutMillis).SetStreamMode(Options.StreamMode))
                 .WithRetryPolicy(RetryPolicy)
                 .WithPoolingOptions(new PoolingOptions()
                     .SetCoreConnectionsPerHost(HostDistance.Local, Options.ConnectionsPerHost)
