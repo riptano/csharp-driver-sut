@@ -53,6 +53,9 @@ namespace DataStax.Driver.Benchmarks
         [Option('b', HelpText = "Enable Socket Stream Mode", Default = false)]
         public bool StreamMode { get; set; }
         
+        [Option("compression", HelpText = "Compression (lz4|snappy)", Default = null)]
+        public string Compression { get; set; }
+        
         [Value(2, HelpText = "Target Framework", Required = true)]
         public string Framework { get; set; }
 
