@@ -110,7 +110,7 @@ namespace DataStax.Driver.Benchmarks
                 Console.WriteLine("- Driver " + DriverVersion);
                 Console.WriteLine("- Connections per hosts " + Options.ConnectionsPerHost);
                 Console.WriteLine("- Socket Stream Mode: " + Options.StreamMode);
-                Console.WriteLine("- Compression Type: " + (Options.Compression ?? "disabled"));
+                Console.WriteLine("- Compression Type: " + Options.Compression);
                 Console.WriteLine("- Max outstanding requests " + Options.CurrentOutstandingRequests);
                 Console.WriteLine("- Operations per series " + Options.CqlRequests);
                 Console.WriteLine("- Series count: " + Options.Series);

@@ -30,21 +30,18 @@ namespace DataStax.Driver.Benchmarks
                     .SetMaxConnectionsPerHost(HostDistance.Local, Options.ConnectionsPerHost)
                     .SetMaxSimultaneousRequestsPerConnectionTreshold(HostDistance.Local, 2048))
                 .WithQueryOptions(new QueryOptions().SetConsistencyLevel(ConsistencyLevel.LocalOne));
-
-            if (Options.Compression != null)
+            
+            if (Options.Compression.Equals("lz4", StringComparison.OrdinalIgnoreCase))
             {
-                if (Options.Compression.Equals("lz4", StringComparison.OrdinalIgnoreCase))
-                {
-                    builder = builder.WithCompression(CompressionType.LZ4);
-                }
-                else if (Options.Compression.Equals("snappy", StringComparison.OrdinalIgnoreCase))
-                {
-                    builder = builder.WithCompression(CompressionType.Snappy);
-                }
-                else
-                {
-                    throw new ArgumentException("Unknown compression type");
-                }
+                builder = builder.WithCompression(CompressionType.LZ4);
+            }
+            else if (Options.Compression.Equals("snappy", StringComparison.OrdinalIgnoreCase))
+            {
+                builder = builder.WithCompression(CompressionType.Snappy);
+            }
+            else if (!Options.Compression.Equals("none", StringComparison.OrdinalIgnoreCase))
+            {
+                throw new ArgumentException("Unknown compression type");
             }
 
             builder = ConfigureAppMetrics(builder);
