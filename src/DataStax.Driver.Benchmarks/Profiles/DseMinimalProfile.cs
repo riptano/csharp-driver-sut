@@ -1,18 +1,15 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using System.Threading.Tasks;
+
 using Dse;
 
 namespace DataStax.Driver.Benchmarks.Profiles
 {
-    class DseMinimalProfile :  MinimalProfile
+    internal class DseMinimalProfile : MinimalProfile
     {
         protected ISession Session;
         protected PreparedStatement InsertPs;
         protected PreparedStatement SelectPs;
-        
+
         public DseMinimalProfile(ISession session)
         {
             this.Session = session;
@@ -28,21 +25,15 @@ namespace DataStax.Driver.Benchmarks.Profiles
             return Session.ExecuteAsync(SelectPs.Bind(Value).SetTimestamp(Timestamp));
         }
 
-        protected override void PrepareStatements()
+        protected override async Task PrepareStatementsAsync()
         {
             if (InsertQuery != null)
             {
-                Task.Run(async () =>
-                {
-                    InsertPs = await Session.PrepareAsync(InsertQuery);
-                }).Wait();
+                InsertPs = await Session.PrepareAsync(InsertQuery).ConfigureAwait(false);
             }
             if (SelectQuery != null)
             {
-                Task.Run(async () =>
-                {
-                    SelectPs = await Session.PrepareAsync(SelectQuery);
-                }).Wait();
+                SelectPs = await Session.PrepareAsync(SelectQuery).ConfigureAwait(false);
             }
         }
 

@@ -1,7 +1,8 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFrameworks>net452;netcoreapp2.0;netcoreapp2.1</TargetFrameworks>
+    <TargetFrameworks Condition="'$(BuildCoreOnly)' != 'True'">net452;net461;netcoreapp2.0;netcoreapp2.1</TargetFrameworks>
+    <TargetFrameworks Condition="'$(BuildCoreOnly)' == 'True'">netcoreapp2.0;netcoreapp2.1</TargetFrameworks>
     <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
     <OutputType>Exe</OutputType>
   </PropertyGroup>
@@ -14,16 +15,30 @@
   </ItemGroup>
   
   <ItemGroup>
-    <PackageReference Include="CommandLineParser.Unofficial" Version="2.0.275" />
+    <PackageReference Include="CommandLineParser" Version="2.6.0" />
+    <PackageReference Include="Newtonsoft.Json" Version="12.0.2" />
     <PackageReference Include="System.Diagnostics.Tracing" Version="4.3.0" />
+    <PackageReference Include="System.Net.Http" Version="4.3.4" />
   </ItemGroup>
-    
+      
   <ItemGroup Condition=" '$(TargetFramework)' == 'net452' ">
     <ProjectReference Include="..\..\csharp-driver\src\Cassandra\Cassandra.csproj">
       <SetTargetFramework>TargetFramework=net45</SetTargetFramework>
     </ProjectReference>
     <ProjectReference Include="..\..\csharp-dse-driver\src\Dse\Dse.csproj">
       <SetTargetFramework>TargetFramework=net45</SetTargetFramework>
+    </ProjectReference>
+  </ItemGroup>
+  
+  <ItemGroup Condition=" '$(TargetFramework)' == 'net461' ">
+    <ProjectReference Include="..\..\csharp-driver\src\Cassandra\Cassandra.csproj">
+      <SetTargetFramework>TargetFramework=net45</SetTargetFramework>
+    </ProjectReference>
+    <ProjectReference Include="..\..\csharp-dse-driver\src\Dse\Dse.csproj">
+      <SetTargetFramework>TargetFramework=net45</SetTargetFramework>
+    </ProjectReference>
+    <ProjectReference Include="..\..\csharp-driver\src\Extensions\Cassandra.AppMetrics\Cassandra.AppMetrics.csproj">
+      <SetTargetFramework>TargetFramework=net461</SetTargetFramework>
     </ProjectReference>
   </ItemGroup>
 
@@ -43,11 +58,26 @@
     <ProjectReference Include="..\..\csharp-dse-driver\src\Dse\Dse.csproj">
       <SetTargetFramework>TargetFramework=netstandard2.0</SetTargetFramework>
     </ProjectReference>
+    <ProjectReference Include="..\..\csharp-driver\src\Extensions\Cassandra.AppMetrics\Cassandra.AppMetrics.csproj">
+      <SetTargetFramework>TargetFramework=netstandard2.0</SetTargetFramework>
+    </ProjectReference>
   </ItemGroup>
   
-  <ItemGroup Condition="'$(TargetFramework)' != 'net452'">
-    <PackageReference Include="System.Diagnostics.TextWriterTraceListener">
-      <Version>4.3.0</Version>
+  <ItemGroup Condition="'$(TargetFramework)' == 'net461'">
+    <PackageReference Include="App.Metrics">
+      <Version>3.1.0</Version>
+    </PackageReference>
+    <PackageReference Include="App.Metrics.Reporting.Graphite">
+      <Version>3.1.0</Version>
+    </PackageReference>
+  </ItemGroup>
+  
+  <ItemGroup Condition="'$(TargetFramework)' == 'netcoreapp2.1'">
+    <PackageReference Include="App.Metrics">
+      <Version>3.1.0</Version>
+    </PackageReference>
+    <PackageReference Include="App.Metrics.Reporting.Graphite">
+      <Version>3.1.0</Version>
     </PackageReference>
   </ItemGroup>
   

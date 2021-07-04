@@ -23,24 +23,18 @@ namespace DataStax.Driver.Benchmarks.Profiles
                 .KeyspaceName("test_csharp_benchmarks_standard_mapper")
                 .TableName("standard1"));
             _mapper = new Mapper(Session);
-            await base.Init(options);
+            await base.Init(options).ConfigureAwait(false);
         }
 
-        protected override void PrepareStatements()
+        protected override async Task PrepareStatementsAsync()
         {
             if (InsertQuery != null)
             {
-                Task.Run(async () =>
-                {
-                    InsertPs = await Session.PrepareAsync(InsertQuery);
-                }).Wait();
+                InsertPs = await Session.PrepareAsync(InsertQuery).ConfigureAwait(false);
             }
             if (SelectQuery != null)
             {
-                Task.Run(async () =>
-                {
-                    SelectPs = await Session.PrepareAsync(SelectQuery);
-                }).Wait();
+                SelectPs = await Session.PrepareAsync(SelectQuery).ConfigureAwait(false);
             }
         }
 

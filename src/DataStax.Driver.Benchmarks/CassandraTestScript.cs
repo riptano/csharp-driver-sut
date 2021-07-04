@@ -1,6 +1,13 @@
 ﻿using System;
 using System.Diagnostics;
+#if !NET452 && !NETCOREAPP2_0
+using System.Threading.Tasks;
+using App.Metrics;
+using App.Metrics.Reporting.Graphite;
+using App.Metrics.Scheduling;
+#endif
 using Cassandra;
+using Cassandra.Metrics;
 using DataStax.Driver.Benchmarks.Profiles;
 
 namespace DataStax.Driver.Benchmarks
@@ -14,16 +21,19 @@ namespace DataStax.Driver.Benchmarks
             Diagnostics.CassandraTraceSwitch.Level = Options.Debug ? TraceLevel.Info : TraceLevel.Warning;
             Trace.Listeners.Add(new TextWriterTraceListener(Console.Out));
             DriverVersion = Options.Version;
-            _cluster = Cluster.Builder()
+            var builder = Cluster.Builder()
                 .AddContactPoint(Options.ContactPoint)
-                .WithSocketOptions(new SocketOptions().SetTcpNoDelay(true).SetReadTimeoutMillis(0))
+                .WithSocketOptions(new SocketOptions().SetTcpNoDelay(true).SetReadTimeoutMillis(0).SetStreamMode(Options.StreamMode))
                 .WithRetryPolicy(RetryPolicy)
                 .WithPoolingOptions(new PoolingOptions()
                     .SetCoreConnectionsPerHost(HostDistance.Local, Options.ConnectionsPerHost)
                     .SetMaxConnectionsPerHost(HostDistance.Local, Options.ConnectionsPerHost)
                     .SetMaxSimultaneousRequestsPerConnectionTreshold(HostDistance.Local, 2048))
-                .WithQueryOptions(new QueryOptions().SetConsistencyLevel(ConsistencyLevel.LocalOne))
-                .Build();
+                .WithQueryOptions(new QueryOptions().SetConsistencyLevel(ConsistencyLevel.LocalOne));
+
+            builder = ConfigureAppMetrics(builder);
+            
+            _cluster = builder.Build();
             _session = _cluster.Connect();
         }
 
@@ -45,6 +55,49 @@ namespace DataStax.Driver.Benchmarks
                 default:
                     return new CassandraStandardProfile(_session);
             }
+        }
+
+        private Builder ConfigureAppMetrics(Builder builder)
+        {
+            if (Options.AppMetrics)
+            {
+#if NET452 || NETCOREAPP2_0
+                throw new ArgumentException("App Metrics are not supported in NET452 and NETSTANDARD1.5");
+#else
+                var metricsRoot = new MetricsBuilder()
+                    .Report.ToGraphite(opt =>
+                    {
+                        opt.Graphite = new GraphiteOptions(new Uri(Options.MetricsEndpoint));
+                        opt.FlushInterval = TimeSpan.FromMilliseconds(Options.AppMetricsInterval);
+                    })
+                    .Build();
+                
+                var scheduler = new AppMetricsTaskScheduler(
+                    TimeSpan.FromMilliseconds(Options.AppMetricsInterval),
+                    async () => { await Task.WhenAll(metricsRoot.ReportRunner.RunAllAsync()); });
+
+                scheduler.Start();
+
+                var metricOptions = new DriverMetricsOptions().SetBucketPrefix(
+                    $"{Options.Driver.Replace('.', '_')}" +
+                    $".{Options.Version.Replace('.', '_')}" +
+                    $".{Options.Framework.Replace('.', '_')}" +
+                    $".{Options.Profile.Replace('.', '_')}");
+
+                if (Options.TimerMetrics)
+                {
+                    metricOptions = metricOptions
+                        .SetEnabledNodeMetrics(NodeMetric.AllNodeMetrics)
+                        .SetEnabledSessionMetrics(SessionMetric.AllSessionMetrics);
+                }
+
+                return builder.WithMetrics(
+                    metricsRoot.CreateDriverMetricsProvider(), 
+                    metricOptions);
+#endif
+            }
+
+            return builder;
         }
     }
 }

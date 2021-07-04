@@ -27,27 +27,29 @@ namespace DataStax.Driver.Benchmarks.Profiles
             Options = options;
             foreach (var q in InitQueries)
             {
-                await ExecuteAsync(q);
+                await ExecuteAsync(q).ConfigureAwait(false);
             }
-            PrepareStatements();
+
+            await PrepareStatementsAsync().ConfigureAwait(false);
+
             // Warmup
-            await InsertMultiple(20000);
-            await SelectMultiple(20000);
+            await InsertMultiple(20000).ConfigureAwait(false);
+            await SelectMultiple(20000).ConfigureAwait(false);
         }
-        protected abstract void PrepareStatements();
+        protected abstract Task PrepareStatementsAsync();
 
         protected abstract Task ExecuteAsync(string query);
         protected abstract Task PrepareAsync(string query);
 
         public async Task<Timer> Insert()
         {
-            await InsertMultiple();
+            await InsertMultiple().ConfigureAwait(false);
             return InsertTimer;
         }
 
         public async Task<Timer> Select()
         {
-            await SelectMultiple();
+            await SelectMultiple().ConfigureAwait(false);
             return SelectTimer;
         }
 
@@ -58,7 +60,7 @@ namespace DataStax.Driver.Benchmarks.Profiles
             {
                 repeatLength = Options.CqlRequests;
             }
-            await Utils.Times(repeatLength, Options.MaxOutstandingRequests, ExecuteInsertCqlAsync);
+            await Utils.RunMultipleThreadsAsync(repeatLength, Options.MaxOutstandingRequests, ExecuteInsertCqlAsync).ConfigureAwait(false);
         }
 
         protected async Task SelectMultiple(long repeatLength = 0L)
@@ -68,7 +70,7 @@ namespace DataStax.Driver.Benchmarks.Profiles
             {
                 repeatLength = Options.CqlRequests;
             }
-            await Utils.Times(repeatLength, Options.MaxOutstandingRequests, ExecuteSelectCqlAsync);
+            await Utils.RunMultipleThreadsAsync(repeatLength, Options.MaxOutstandingRequests, ExecuteSelectCqlAsync).ConfigureAwait(false);
         }
 
         protected Task ExecuteInsertCqlAsync(long index)

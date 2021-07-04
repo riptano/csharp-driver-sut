@@ -24,18 +24,18 @@ namespace DataStax.Driver.Benchmarks.Profiles
                 .TableName("standard1"));
 
             _mapper = new Mapper(Session);
-            await base.Init(options);
+            await base.Init(options).ConfigureAwait(false);
         }
 
-        protected override void PrepareStatements()
+        protected override async Task PrepareStatementsAsync()
         {
             if (InsertQuery != null)
             {
-                InsertPs = CassandraUtils.PrepareStatement(Session, InsertQuery);
+                InsertPs = await CassandraUtils.PrepareStatement(Session, InsertQuery).ConfigureAwait(false);
             }
             if (SelectQuery != null)
             {
-                SelectPs = CassandraUtils.PrepareStatement(Session, SelectQuery);
+                SelectPs = await CassandraUtils.PrepareStatement(Session, SelectQuery).ConfigureAwait(false);
             }
         }
         protected override Task ExecuteAsync(string query)

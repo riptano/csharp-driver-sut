@@ -18,21 +18,15 @@ namespace DataStax.Driver.Benchmarks.Profiles
             Session = session;
         }
 
-        protected override void PrepareStatements()
+        protected override async Task PrepareStatementsAsync()
         {
             if (InsertQuery != null)
             {
-                Task.Run(async () =>
-                {
-                    InsertPs = await Session.PrepareAsync(InsertQuery);
-                }).Wait();
+                InsertPs = await Session.PrepareAsync(InsertQuery).ConfigureAwait(false);
             }
             if (SelectQuery != null)
             {
-                Task.Run(async () =>
-                {
-                    SelectPs = await Session.PrepareAsync(SelectQuery);
-                }).Wait();
+                SelectPs = await Session.PrepareAsync(SelectQuery).ConfigureAwait(false);
             }
         }
 

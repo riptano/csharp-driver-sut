@@ -1,13 +1,11 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
+
 using Cassandra;
 
 namespace DataStax.Driver.Benchmarks.Profiles
 {
-    class CassandraStandardProfile : StandardProfile
+    internal class CassandraStandardProfile : StandardProfile
     {
         protected ISession Session;
         protected PreparedStatement InsertPs;
@@ -18,15 +16,15 @@ namespace DataStax.Driver.Benchmarks.Profiles
             Session = session;
         }
 
-        protected override void PrepareStatements()
+        protected override async Task PrepareStatementsAsync()
         {
             if (InsertQuery != null)
             {
-                InsertPs = CassandraUtils.PrepareStatement(Session, InsertQuery);
+                InsertPs = await CassandraUtils.PrepareStatement(Session, InsertQuery).ConfigureAwait(false);
             }
             if (SelectQuery != null)
             {
-                SelectPs = CassandraUtils.PrepareStatement(Session, SelectQuery);
+                SelectPs = await CassandraUtils.PrepareStatement(Session, SelectQuery).ConfigureAwait(false);
             }
         }
 
